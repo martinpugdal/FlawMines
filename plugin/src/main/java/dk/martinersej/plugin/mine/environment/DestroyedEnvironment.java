@@ -2,6 +2,9 @@ package dk.martinersej.plugin.mine.environment;
 
 import dk.martinersej.plugin.mine.Mine;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class DestroyedEnvironment extends Environment {
 
     // blocks
@@ -42,5 +45,19 @@ public class DestroyedEnvironment extends Environment {
         if (blocksDestroyed >= mine.getRegion().getArea()) {
             finished = true;
         }
+    }
+
+    @Override
+    public String serialize() {
+        // just the extra data we need to serialize
+        Map<String, String> data = new HashMap<>();
+        data.put("ratio", String.valueOf(ratio));
+        data.put("blocksNeeded", String.valueOf(blocksNeeded));
+
+        // Serialize the data map
+        return data.entrySet().stream()
+            .map(entry -> entry.getKey() + ":" + entry.getValue())
+            .reduce((a, b) -> a + "," + b)
+            .orElse("");
     }
 }

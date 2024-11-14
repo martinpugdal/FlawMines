@@ -18,4 +18,10 @@ public abstract class Environment {
     }
 
     public abstract double getProgress();
+
+    public abstract String serialize();
+
+    public void deserialize(String data) {
+        // Deserialize the data
+    }
 }

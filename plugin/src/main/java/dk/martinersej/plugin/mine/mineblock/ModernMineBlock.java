@@ -16,6 +16,11 @@ public class ModernMineBlock extends MineBlock {
         return null;
     }
 
+    @Override
+    public String serialize() {
+        return "type:modern,block:stone,percentage:0.5";
+    }
+
 //    private BlockData block;
 //
 //    public ModernMineBlock(Material material, float percentage) {

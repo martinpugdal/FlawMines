@@ -3,6 +3,7 @@ package dk.martinersej.plugin.database;
 import dk.martinersej.plugin.FlawMines;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import org.bukkit.Bukkit;
 
 import java.io.File;
 import java.sql.Connection;
@@ -33,9 +34,9 @@ public class SQLiteDatabase {
             e.printStackTrace();
         }
         if (isConnected()) {
-            FlawMines.getInstance().getLogger().info("Connected to database");
+            FlawMines.get().getLogger().info("Connected to database");
         } else {
-            FlawMines.getInstance().getLogger().severe("Failed to connect to database");
+            FlawMines.get().getLogger().severe("Failed to connect to database");
         }
     }
 
@@ -53,15 +54,15 @@ public class SQLiteDatabase {
     }
 
     public String getDatabase() {
-        return FlawMines.getInstance().getName();
+        return FlawMines.get().getName();
     }
 
     public String getPrefix() {
-        return FlawMines.getInstance().getDescription().getName();
+        return FlawMines.get().getDescription().getName();
     }
 
     public String getURL() {
-        return String.format("jdbc:sqlite:%s%s%s.db", FlawMines.getInstance().getDataFolder(), File.separator, getDatabase());
+        return String.format("jdbc:sqlite:%s%s%s.db", FlawMines.get().getDataFolder(), File.separator, getDatabase());
     }
 
     public String getDriver() {
@@ -71,11 +72,24 @@ public class SQLiteDatabase {
     public void createTables() {
         List<String> tables = new ArrayList<>();
 
-        String walletTable = QueryBuilder.QueryTableBuilder.createTable("mines").
-            values("uuid", "VARCHAR(36)", Constraint.PRIMARY_KEY, Constraint.NOT_NULL).
-            values("balance", "REAL", Constraint.NOT_NULL).
-            build();
-        tables.add(walletTable);
+        String minesTable = QueryBuilder.QueryTableBuilder.createTable("mines").
+            values("id", "TEXT PRIMARY KEY NOT NULL").
+            values("location", "TEXT NOT NULL").
+                build();
+        tables.add(minesTable);
+        String blocksTable = QueryBuilder.QueryTableBuilder.createTable("mineBlocks").
+            values("id", "AUTOINCREMENT PRIMARY KEY NOT NULL").
+            values("mineId", "FOREIGN KEY REFERENCES mines(id) NOT NULL").
+            values("data", "TEXT NOT NULL").
+                build();
+        tables.add(blocksTable);
+        String environmentsTable = QueryBuilder.QueryTableBuilder.createTable("mineEnvironments").
+                values("id", "AUTOINCREMENT PRIMARY KEY NOT NULL").
+                values("mineId", "FOREIGN KEY REFERENCES mines(id) NOT NULL").
+                values("type", "TEXT NOT NULL"). // class name
+                values("data", "TEXT NOT NULL"). // serialized data
+                build();
+        tables.add(environmentsTable);
 
         sync((connection) -> {
             try {
@@ -89,7 +103,7 @@ public class SQLiteDatabase {
     }
 
     public void async(Runnable task) {
-        FlawMines.getInstance().getServer().getScheduler().runTaskAsynchronously(FlawMines.getInstance(), () -> {
+        Bukkit.getServer().getScheduler().runTaskAsynchronously(FlawMines.get(), () -> {
             sync((connection) -> task.run());
         });
     }

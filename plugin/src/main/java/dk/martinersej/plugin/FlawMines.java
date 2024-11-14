@@ -5,13 +5,20 @@ import dk.martinersej.api.FlawMinesInterface;
 import dk.martinersej.api.worldedit.WorldEditInterface;
 import dk.martinersej.plugin.database.SQLiteDatabase;
 import lombok.Getter;
+import org.bukkit.World;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public final class FlawMines extends JavaPlugin {
+import java.util.HashMap;
+import java.util.Map;
+
+public final class FlawMines extends JavaPlugin implements Listener {
 
     // statically available instance
-    @Getter
     private static FlawMines instance;
 
     // general variables
@@ -21,6 +28,9 @@ public final class FlawMines extends JavaPlugin {
     private WorldEditInterface worldEditInterface = null;
     @Getter
     private SQLiteDatabase sqLiteDatabase;
+
+    // mine management
+    private final Map<World, MineManager> mineManagers = new HashMap<>();
 
     @Override
     public void onLoad() {
@@ -34,6 +44,9 @@ public final class FlawMines extends JavaPlugin {
 
         // setup sqLiteDatabase
         sqLiteDatabase = new SQLiteDatabase();
+
+        // setup world listener
+        getServer().getPluginManager().registerEvents(this, this);
     }
 
     @Override
@@ -69,6 +82,29 @@ public final class FlawMines extends JavaPlugin {
         } catch (Exception ignored) {
             getLogger().severe("WorldEdit version " + weVersion + " is not supported, disabling plugin");
             getServer().getPluginManager().disablePlugin(this);
+        }
+    }
+
+    public static FlawMines get() {
+        return instance;
+    }
+
+    public MineManager getMineManager(World world) {
+        return mineManagers.get(world);
+    }
+
+    @EventHandler
+    public void onWorldLoad(WorldLoadEvent event) {
+        World world = event.getWorld();
+        mineManagers.put(world, new MineManager(world));
+    }
+
+    @EventHandler
+    public void onWorldUnload(WorldUnloadEvent event) {
+        World world = event.getWorld();
+        MineManager mineManager = mineManagers.remove(world);
+        if (mineManager != null) {
+            mineManager.disable();
         }
     }
 }
