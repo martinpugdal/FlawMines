@@ -24,7 +24,7 @@
 
   <build>
     <directory>target</directory>
-    <finalName>FlawMines-${version}-${java.version}</finalName>
+    <finalName>FlawMines-${version}</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -38,7 +38,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.5.3</version>
+        <version>3.2.4</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -72,7 +72,6 @@
       <artifactId>api</artifactId>
       <version>lastest</version>
       <type>jar</type>
-      <scope>compile</scope>
     </dependency>
 
     <!-- worldedit -->
