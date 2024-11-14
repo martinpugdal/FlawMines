@@ -20,7 +20,7 @@ public final class FlawMines extends JavaPlugin {
     @Getter
     private WorldEditInterface worldEditInterface = null;
     @Getter
-    private SQLiteDatabase database;
+    private SQLiteDatabase sqLiteDatabase;
 
     @Override
     public void onLoad() {
@@ -32,8 +32,8 @@ public final class FlawMines extends JavaPlugin {
         // setup WorldEdit
         setupWorldEdit();
 
-        // setup database
-        database = new SQLiteDatabase();
+        // setup sqLiteDatabase
+        sqLiteDatabase = new SQLiteDatabase();
     }
 
     @Override

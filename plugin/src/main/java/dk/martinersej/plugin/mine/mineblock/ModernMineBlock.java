@@ -2,6 +2,8 @@ package dk.martinersej.plugin.mine.mineblock;
 
 //import org.bukkit.block.data.BlockData;
 
+import org.bukkit.inventory.ItemStack;
+
 //TODO: implement this later, then we adding multiple version support - for now we only support 1.8.8 - 1.12.2
 public class ModernMineBlock extends MineBlock {
 
@@ -10,7 +12,7 @@ public class ModernMineBlock extends MineBlock {
     }
 
     @Override
-    public Object getBlock() {
+    public ItemStack getBlock() {
         return null;
     }
 
