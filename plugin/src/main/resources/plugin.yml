@@ -1,0 +1,17 @@
+name: FlawMines
+version: '1.0'
+main: dk.martinersej.plugin.FlawMines
+api-version: '1.21'
+depend:
+  - WorldEdit
+softdepend:
+  - WorldGuard
+  - FastAsyncWorldEdit
+
+commands:
+  test:
+    description: Test command
+    usage: /<command>
+    permission: flawmines.test
+    aliases:
+      - t
