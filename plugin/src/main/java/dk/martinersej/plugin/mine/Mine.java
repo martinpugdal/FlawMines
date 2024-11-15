@@ -4,42 +4,58 @@ import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.EditSessionFactory;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.blocks.BaseBlock;
+import com.sk89q.worldedit.bukkit.BukkitUtil;
+import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.patterns.BlockChance;
 import com.sk89q.worldedit.patterns.RandomFillPattern;
-import com.sk89q.worldedit.regions.Region;
+import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.mine.environment.Environment;
 import dk.martinersej.plugin.mine.mineblock.MineBlock;
-import lombok.Getter;
-import lombok.Setter;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.PriorityQueue;
 
-@Getter
 public class Mine {
 
-    private final String id;
+    private final String name;
     private final List<MineBlock> blocks = new ArrayList<>();
-    @Setter
-    private Region region;
+    private final List<Environment> environments = new ArrayList<>();
+    private final MineRegion mineRegion;
 
-    private final PriorityQueue<Environment> environments = new PriorityQueue<>();
+    public Mine(String name, ProtectedRegion region, World world) {
+        this.name = name;
+        this.mineRegion = new MineRegion(region, world);
+    }
 
-    public Mine(String id) {
-        this.id = id;
+    public List<Environment> getEnvironments() {
+        return environments;
+    }
+
+    public MineRegion getRegion() {
+        return mineRegion;
+    }
+
+    public World getWorld() {
+        // get world from region
+        return ((BukkitWorld) mineRegion.getRegion().getWorld()).getWorld();
+    }
+
+    public List<MineBlock> getBlocks() {
+        return blocks;
     }
 
     public void reset() {
         //TODO: this should refactor because some methods is not available then we upgrade worldedit version, f.e.
         // RandomPattern is the new class name for RandomFillPattern.
         // Same for BlockChance.
-        Bukkit.getScheduler().runTaskAsynchronously(FlawMines.getInstance(), () -> {
+        Bukkit.getScheduler().runTaskAsynchronously(FlawMines.get(), () -> {
 
-            EditSessionFactory editSession = FlawMines.getInstance().getWorldEdit().getWorldEdit().getEditSessionFactory();
-            EditSession session = editSession.getEditSession(region.getWorld(), region.getArea()); // region.getArea()
+            EditSessionFactory editSession = FlawMines.get().getWorldEdit().getWorldEdit().getEditSessionFactory();
+
+            EditSession session = editSession.getEditSession(new BukkitWorld(getWorld()), getRegion().getVolume());
             // should work, unless we could change it to -1 for a hard fix. I hope it's not necessary.
 
             try {
@@ -51,9 +67,7 @@ public class Mine {
 
                 RandomFillPattern pattern = new RandomFillPattern(blockChances);
 
-                session.setBlocks(region, pattern);
-
-                //
+                session.setBlocks(mineRegion.getRegion(), pattern);
             } catch (MaxChangedBlocksException e) {
                 e.printStackTrace();
             } finally {
@@ -69,7 +83,7 @@ public class Mine {
     }
 
     public long getTotalBlocks() {
-        return (long) region.getArea() * region.getHeight(); // area * height = total blocks
+        return mineRegion.getVolume();
     }
 
     private void resetFinished() {
@@ -87,5 +101,15 @@ public class Mine {
 
     public void clearBlocks() {
         blocks.clear();
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public int hashCode() {
+        // generate hashcode from name and region
+        return (name + getWorld().getName()).hashCode();
     }
 }

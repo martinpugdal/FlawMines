@@ -4,8 +4,8 @@ main: dk.martinersej.plugin.FlawMines
 api-version: '1.21'
 depend:
   - WorldEdit
-softdepend:
   - WorldGuard
+softdepend:
   - FastAsyncWorldEdit
 
 commands:

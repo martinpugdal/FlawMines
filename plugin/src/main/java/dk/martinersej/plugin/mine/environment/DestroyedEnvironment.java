@@ -12,8 +12,8 @@ public class DestroyedEnvironment extends Environment {
     private int blocksNeeded; // The amount of blocks needed to be destroyed
     private int blocksDestroyed = 0; // The amount of blocks destroyed
 
-    public DestroyedEnvironment(Mine mine, int priority, int ratio) {
-        super(mine, priority);
+    public DestroyedEnvironment(int id, Mine mine, int priority, float ratio) {
+        super(id, mine, priority);
 
         if (ratio < 0 || ratio > 100) {
             throw new IllegalArgumentException("The ratio must be between 0 and 100");
@@ -42,7 +42,7 @@ public class DestroyedEnvironment extends Environment {
 
     public void increaseBlocksDestroyed() {
         blocksDestroyed++;
-        if (blocksDestroyed >= mine.getRegion().getArea()) {
+        if (blocksDestroyed >= mine.getRegion().getVolume()) {
             finished = true;
         }
     }
@@ -59,5 +59,19 @@ public class DestroyedEnvironment extends Environment {
             .map(entry -> entry.getKey() + ":" + entry.getValue())
             .reduce((a, b) -> a + "," + b)
             .orElse("");
+    }
+
+    public static DestroyedEnvironment deserialize(String data) {
+        Map<String, String> map = new HashMap<>();
+        for (String entry : data.split(",")) {
+            String[] split = entry.split(":");
+            map.put(split[0], split[1]);
+        }
+
+        int id = Integer.parseInt(map.get("id"));
+        int priority = Integer.parseInt(map.get("priority"));
+        float ratio = Float.parseFloat(map.get("ratio"));
+
+        return new DestroyedEnvironment(id, null, priority, ratio);
     }
 }

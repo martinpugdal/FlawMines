@@ -23,18 +23,8 @@
   </properties>
 
   <build>
-    <directory>target</directory>
     <finalName>FlawMines-${version}</finalName>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
-        <configuration>
-          <source>${java.version}</source>
-          <target>${java.version}</target>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
@@ -49,29 +39,57 @@
         </executions>
       </plugin>
     </plugins>
-    <resources>
-      <resource>
-        <directory>src/main/resources</directory>
-        <filtering>true</filtering>
-      </resource>
-    </resources>
   </build>
 
   <dependencies>
+      <!-- latest spigot -->
+      <dependency>
+        <groupId>org.spigotmc</groupId>
+        <artifactId>spigot-api</artifactId>
+        <version>1.12.2-R0.1-SNAPSHOT</version>
+        <type>jar</type>
+        <optional>true</optional>
+        <scope>provided</scope>
+      </dependency>
+
     <!-- modules -->
     <dependency>
       <groupId>dk.martinersej</groupId>
       <artifactId>api</artifactId>
-      <version>lastest</version>
+      <version>latest</version>
       <type>jar</type>
+    </dependency>
+
+    <!-- worldedit handler -->
+    <dependency>
+      <groupId>dk.martinersej</groupId>
+      <artifactId>worldedit-6</artifactId>
+      <version>latest</version>
+    </dependency>
+
+    <!-- worldguard handler -->
+    <dependency>
+      <groupId>dk.martinersej</groupId>
+      <artifactId>worldguard-6</artifactId>
+      <version>latest</version>
     </dependency>
 
     <!-- worldedit -->
     <dependency>
       <groupId>com.sk89q</groupId>
       <artifactId>worldedit</artifactId>
+      <scope>system</scope>
       <version>6.0.0-SNAPSHOT</version>
-      <scope>provided</scope>
+      <systemPath>${project.basedir}/../dependencies/worldedit-6.0.0-SNAPSHOT.jar</systemPath>
+    </dependency>
+
+    <!-- worldguard -->
+    <dependency>
+      <groupId>com.sk89q</groupId>
+      <artifactId>worldguard</artifactId>
+      <scope>system</scope>
+      <version>6.1.1-SHAPSHOT</version>
+      <systemPath>${project.basedir}/../dependencies/worldguard-6.1.1-SNAPSHOT.jar</systemPath>
     </dependency>
   </dependencies>
 </project>

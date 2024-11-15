@@ -1,25 +1,17 @@
 package dk.martinersej.plugin.mine.mineblock;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Getter
 public abstract class MineBlock {
 
-    @Setter
     private float percentage;
 
     public MineBlock(float percentage) {
         this.percentage = percentage;
     }
-
-    public abstract ItemStack getBlock();
-
-    public abstract String serialize();
 
     public static MineBlock deserialize(String data) {
         Map<String, String> map = new HashMap<>();
@@ -36,5 +28,17 @@ public abstract class MineBlock {
         }
 
         return null;
+    }
+
+    public abstract ItemStack getBlock();
+
+    public abstract String serialize();
+
+    public float getPercentage() {
+        return percentage;
+    }
+
+    public void setPercentage(float percentage) {
+        this.percentage = percentage;
     }
 }
