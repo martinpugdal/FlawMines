@@ -7,6 +7,7 @@ import java.util.Map;
 
 public abstract class MineBlock {
 
+    private int id = -1;
     private float percentage;
 
     public MineBlock(float percentage) {
@@ -40,5 +41,13 @@ public abstract class MineBlock {
 
     public void setPercentage(float percentage) {
         this.percentage = percentage;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 }

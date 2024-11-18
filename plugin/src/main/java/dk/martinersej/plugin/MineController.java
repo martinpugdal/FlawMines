@@ -1,5 +1,6 @@
 package dk.martinersej.plugin;
 
+import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dk.martinersej.plugin.mine.Mine;
 import dk.martinersej.plugin.mine.environment.Environment;
 import dk.martinersej.plugin.mine.mineblock.MineBlock;
@@ -7,12 +8,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -69,30 +69,29 @@ public class MineController {
     public void createTables() {
         List<String> tables = new ArrayList<>();
 
-        String minesTable = "" +
-            "CREATE TABLE IF NOT EXISTS mines (" +
-            "id TEXT PRIMARY KEY NOT NULL," +
+        //todo: combine id and region into a single primary key
+        String minesTable = "CREATE TABLE IF NOT EXISTS mines (" +
+            "id TEXT NOT NULL," +
             "world TEXT NOT NULL," + // where its located
-            "region TEXT NOT NULL" + // region id or something
+            "region TEXT NOT NULL, " + // the region name
+            "PRIMARY KEY (id, region)" + // primary key is id and region
             ");" ;
         tables.add(minesTable);
 
-        String blocksTable = "" +
-            "CREATE TABLE IF NOT EXISTS mineBlocks (" +
+        String blocksTable = "CREATE TABLE IF NOT EXISTS mineBlocks (" +
             "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," +
             "mineId TEXT NOT NULL," +
             "data TEXT NOT NULL," +
-            "FOREIGN KEY (mineId) REFERENCES mines(id)" +
+            "FOREIGN KEY (mineId) REFERENCES mines(id) ON DELETE CASCADE" +
             ");" ;
         tables.add(blocksTable);
 
-        String environmentsTable = "" +
-            "CREATE TABLE IF NOT EXISTS mineEnvironments (" +
+        String environmentsTable = "CREATE TABLE IF NOT EXISTS mineEnvironments (" +
             "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," +
             "mineId TEXT NOT NULL," +
             "type TEXT NOT NULL," +
             "data TEXT NOT NULL," +
-            "FOREIGN KEY (mineId) REFERENCES mines(id)" +
+            "FOREIGN KEY (mineId) REFERENCES mines(id) ON DELETE CASCADE" +
             ");" ;
         tables.add(environmentsTable);
 
@@ -119,6 +118,49 @@ public class MineController {
         });
     }
 
+    public Map<ProtectedRegion, Mine> loadMines(World world) {
+        Map<ProtectedRegion, Mine> mines = new HashMap<>();
+        sync((connection) -> {
+            FlawMines plugin = FlawMines.get();
+            String query = " SELECT * FROM mines WHERE world = ? " +
+                " LEFT JOIN mineBlocks mB ON mines.id = mB.mineId " +
+                " LEFT JOIN mineEnvironments mE ON mines.id = mE.mineId; " ;
+            try {
+                PreparedStatement statement = connection.prepareStatement(query);
+                statement.setString(1, world.getName());
+
+                ResultSet resultSet = statement.executeQuery();
+
+                while (resultSet.next()) {
+                    String id = resultSet.getString("id"); // mine id = name
+                    String regionName = resultSet.getString("region");
+
+                    // worldguard support for getting a region
+                    ProtectedRegion region = plugin.getWorldGuardInterface().getRegionManager(world).getRegion(regionName);
+                    if (region == null) {
+                        plugin.getLogger().warning("Mine region not found: " + regionName);
+                        continue;
+                    }
+
+                    Mine mine = new Mine(id, region, world);
+                    mines.put(region, mine);
+
+                    // load the blocks and environments for the mine
+                    do {
+                        // load the blocks stuff here for mine
+
+                        // load the environment stuff here for mine too
+                    } while (resultSet.next());
+
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        return mines;
+    }
+
     public void saveMine(Mine mine) {
         sync((connection) -> {
             try {
@@ -130,21 +172,20 @@ public class MineController {
                 statement.setString(3, mine.getName());
 
                 PreparedStatement blockStatement = connection.prepareStatement(
-                    "UPDATE mineBlocks SET data = ? WHERE mineId = ?"
+                    "UPDATE mineBlocks SET data = ? WHERE id = ?" // mineId is not needed for update, only insert
                 );
                 for (MineBlock block : mine.getBlocks()) {
-                    blockStatement.setString(1, block.serialize());
-                    blockStatement.setString(2, mine.getName());
+                    blockStatement.setInt(1, block.getId());
+                    blockStatement.setString(2, block.serialize());
                     blockStatement.addBatch();
                 }
 
                 PreparedStatement environmentStatement = connection.prepareStatement(
-                    "UPDATE mineEnvironments SET data = ? WHERE id = ? AND mineId = ?"
+                    "UPDATE mineEnvironments SET data = ? WHERE id = ?" // mineId is not needed for update, only insert
                 );
                 for (Environment environment : mine.getEnvironments()) {
                     environmentStatement.setString(1, environment.serialize());
                     environmentStatement.setInt(2, environment.getId());
-                    environmentStatement.setString(3, mine.getName());
                     environmentStatement.addBatch();
                 }
 
@@ -169,12 +210,45 @@ public class MineController {
         });
     }
 
-    public void deleteMine(String id) {
+    public void deleteMine(String id, String region) {
         sync((connection) -> {
             try {
-                connection.createStatement().executeUpdate(
-                    String.format("DELETE FROM mines WHERE id = '%s'", id)
+                PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM mines WHERE id = ? AND region = ?"
                 );
+                statement.setString(1, id);
+                statement.setString(2, region);
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public void addBlock(String name, MineBlock block) {
+        sync((connection) -> {
+            try {
+                PreparedStatement statement = connection.prepareStatement(
+                    "INSERT INTO mineBlocks (mineId, data) VALUES (?, ?)"
+                );
+                statement.setString(1, name);
+                statement.setString(2, block.serialize());
+                int id = statement.executeUpdate(); // get the id of the block
+                block.setId(id);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public void removeBlock(MineBlock block) {
+        sync((connection) -> {
+            try {
+                PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM mineBlocks WHERE id = ?"
+                );
+                statement.setInt(1, block.getId());
+                statement.executeUpdate();
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }

@@ -5,7 +5,7 @@ import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import dk.martinersej.api.FlawMinesInterface;
 import dk.martinersej.api.worldedit.WorldEditInterface;
 import dk.martinersej.api.worldguard.WorldGuardInterface;
-import dk.martinersej.plugin.command.TestCommand;
+import dk.martinersej.plugin.utils.command.CommandInjector;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
@@ -32,9 +32,14 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
     private WorldGuardInterface worldGuardInterface = null;
 
     private MineController mineController;
+    private static CommandInjector commandInjector;
 
     public static FlawMines get() {
         return instance;
+    }
+
+    public static CommandInjector getCommandInjector() {
+        return commandInjector;
     }
 
     @Override
@@ -66,8 +71,8 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
         // setup world listener
         getServer().getPluginManager().registerEvents(this, this);
 
-        // setup test command
-        getCommand("test").setExecutor(new TestCommand());
+        // setup command injector
+        commandInjector = new CommandInjector();
 
         for (World world : Bukkit.getWorlds()) {
             MineManager manager = mineManagers.put(world, new MineManager(world));

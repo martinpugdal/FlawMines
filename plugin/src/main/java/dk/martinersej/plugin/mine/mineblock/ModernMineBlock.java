@@ -18,7 +18,7 @@ public class ModernMineBlock extends MineBlock {
 
     @Override
     public String serialize() {
-        return "type:modern,block:stone,percentage:0.5";
+        return "type:modern,block:" + getBlock().getType().name() + ",percentage:" + getPercentage();
     }
 
 //    private BlockData block;

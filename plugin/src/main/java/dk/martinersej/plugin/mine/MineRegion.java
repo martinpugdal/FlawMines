@@ -47,6 +47,10 @@ public class MineRegion {
         return region;
     }
 
+    public String getId() {
+        return protectedRegion.getId();
+    }
+
     public ProtectedRegion getProtectedRegion() {
         return protectedRegion;
     }

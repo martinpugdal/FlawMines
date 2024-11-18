@@ -4,7 +4,6 @@ import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.EditSessionFactory;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.blocks.BaseBlock;
-import com.sk89q.worldedit.bukkit.BukkitUtil;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.patterns.BlockChance;
 import com.sk89q.worldedit.patterns.RandomFillPattern;
@@ -51,31 +50,28 @@ public class Mine {
         //TODO: this should refactor because some methods is not available then we upgrade worldedit version, f.e.
         // RandomPattern is the new class name for RandomFillPattern.
         // Same for BlockChance.
-        Bukkit.getScheduler().runTaskAsynchronously(FlawMines.get(), () -> {
 
-            EditSessionFactory editSession = FlawMines.get().getWorldEdit().getWorldEdit().getEditSessionFactory();
+        //TODO: if its not legacy, we can make it async, in legacy we can not change the blocks async.
+        EditSessionFactory editSession = FlawMines.get().getWorldEdit().getWorldEdit().getEditSessionFactory();
 
-            EditSession session = editSession.getEditSession(new BukkitWorld(getWorld()), getRegion().getVolume());
-            // should work, unless we could change it to -1 for a hard fix. I hope it's not necessary.
+        EditSession session = editSession.getEditSession(new BukkitWorld(getWorld()), getRegion().getVolume());
+        // should work, unless we could change it to -1 for a hard fix. I hope it's not necessary.
 
-            try {
-                List<BlockChance> blockChances = new ArrayList<>();
-                blocks.forEach((block -> {
-                    BaseBlock baseBlock = new BaseBlock(block.getBlock().getType().getId(), block.getBlock().getData().getData());
-                    blockChances.add(new BlockChance(baseBlock, block.getPercentage()));
-                }));
+        try {
+            List<BlockChance> blockChances = new ArrayList<>();
+            blocks.forEach((block -> {
+                BaseBlock baseBlock = new BaseBlock(block.getBlock().getType().getId(), block.getBlock().getData().getData());
+                blockChances.add(new BlockChance(baseBlock, block.getPercentage()));
+            }));
 
-                RandomFillPattern pattern = new RandomFillPattern(blockChances);
+            RandomFillPattern pattern = new RandomFillPattern(blockChances);
 
-                session.setBlocks(mineRegion.getRegion(), pattern);
-            } catch (MaxChangedBlocksException e) {
-                e.printStackTrace();
-            } finally {
-                session.flushQueue();
-            }
-
-
-        });
+            session.setBlocks(mineRegion.getRegion(), pattern);
+        } catch (MaxChangedBlocksException e) {
+            e.printStackTrace();
+        } finally {
+            session.flushQueue();
+        }
     }
 
     public void addEnvironment(Environment environment) {
