@@ -6,13 +6,22 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.SimplePluginManager;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CommandInjector {
 
     private SimpleCommandMap scm;
+    private final List<Command> commands = new ArrayList<>();
 
     public CommandInjector() {
         setupSimpleCommandMap();
+    }
+
+    public void disableAllCommands() {
+        for (Command command : commands) {
+            disableCommand(command);
+        }
     }
 
     private void setupSimpleCommandMap() {
@@ -35,6 +44,7 @@ public class CommandInjector {
     }
 
     public void enableCommand(Command command, Plugin owner) {
+        commands.add(command);
         scm.register(owner.getName(), command);
     }
 

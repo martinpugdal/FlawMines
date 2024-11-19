@@ -1,5 +1,0 @@
-
-
-- Idea for creating a mine with command.
-We can add an option for it should create a fresh region by player's current selection with WE.
-Or it should pick a region from the region manager and create a mine based on that region.

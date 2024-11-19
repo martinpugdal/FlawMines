@@ -7,7 +7,7 @@ import java.util.Map;
 
 public abstract class Environment {
 
-    private final int id; // its for database
+    private int id; // its for database
     protected final Mine mine;
     protected final int priority;
     protected boolean finished = false;
@@ -34,14 +34,21 @@ public abstract class Environment {
             map.put(split[0], split[1]);
         }
 
+        Environment environment = null;
         if (map.get("type").equals("destroyed")) {
-            return DestroyedEnvironment.deserialize(data);
+            environment = DestroyedEnvironment.deserialize(data);
+        } else if (map.get("type").equals("time")) {
+            environment = null;
         }
 
-        return null;
+        return environment;
     }
 
     public int getId() {
         return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 }

@@ -3,16 +3,14 @@ package dk.martinersej.plugin.utils.command;
 import dk.martinersej.plugin.FlawMines;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginIdentifiableCommand;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public abstract class Command extends org.bukkit.command.Command implements PluginIdentifiableCommand, TabCompleter {
+public abstract class Command extends org.bukkit.command.Command implements PluginIdentifiableCommand {
 
     private final ArrayList<SubCommand> subCommands = new ArrayList<>();
     private final String[] permissions;
@@ -42,14 +40,6 @@ public abstract class Command extends org.bukkit.command.Command implements Plug
         this.permissions = permissions;
         setPermission(permissions.length == 0 ? null : permissions[0]);
         setPermissionMessage("§cYou do not have permission to use this command!");
-    }
-
-    public void inject(JavaPlugin plugin) {
-        FlawMines.getCommandInjector().enableCommand(this, plugin);
-    }
-
-    public void uninject() {
-        FlawMines.getCommandInjector().disableCommand(this);
     }
 
     // Subcommand Management
@@ -109,7 +99,7 @@ public abstract class Command extends org.bukkit.command.Command implements Plug
     }
 
     // Handling Allowed SubCommands
-    public List<String> getAllowedSubCommands(CommandSender commandSender, org.bukkit.command.Command command, String label, String[] strings) {
+    public List<String> getAllowedSubCommands(CommandSender commandSender, String[] strings) {
         ArrayList<String> allowedSubCommands = new ArrayList<>();
         for (SubCommand subCommand : this.getSubCommands()) {
             if (hasPermission(commandSender, subCommand.getPermissions()) && strings.length == 1) {
@@ -164,22 +154,35 @@ public abstract class Command extends org.bukkit.command.Command implements Plug
             return new CommandResult(subCommand, Result.NO_PERMISSION);
         }
         String[] newArgs = Arrays.copyOfRange(args, 1, args.length);
-        return subCommand.execute(sender, newArgs);
+
+        CommandResult result = subCommand.execute(sender, newArgs);
+        if (result == null)
+            result = Result.error(subCommand);
+
+        return result;
     }
 
-    abstract public List<String> onTabComplete(CommandSender commandSender, String label, String[] strings);
+    @Override
+    public List<String> tabComplete(CommandSender commandSender, String label, String[] strings) {
+        return defaultTabComplete(commandSender, strings);
+    }
 
-    protected List<String> defaultTabComplete(CommandSender commandSender, String label, String[] strings) {
+    protected List<String> defaultTabComplete(CommandSender commandSender, String[] strings) {
         if (strings.length == 1) {
-            return getAllowedSubCommands(commandSender, this, label, strings);
+            return getAllowedSubCommands(commandSender, strings);
         } else {
             return new ArrayList<>();
         }
     }
 
-    @Override
-    public List<String> onTabComplete(CommandSender commandSender, org.bukkit.command.Command command, String label, String[] strings) {
-        return onTabComplete(commandSender, label, strings);
+    protected List<String> filterStartingWith(String string, String[] values) {
+        List<String> completions = new ArrayList<>();
+        for (String s : values) {
+            if (s.startsWith(string)) {
+                completions.add(s);
+            }
+        }
+        return completions;
     }
 
     public String getDescription() {

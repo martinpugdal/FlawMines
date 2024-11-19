@@ -3,16 +3,17 @@ package dk.martinersej.plugin.command.subcommands;
 import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.MineManager;
 import dk.martinersej.plugin.mine.Mine;
+import dk.martinersej.plugin.mine.MineBlock;
 import dk.martinersej.plugin.utils.command.CommandResult;
 import dk.martinersej.plugin.utils.command.Result;
 import dk.martinersej.plugin.utils.command.SubCommand;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-public class RemoveMineCommand extends SubCommand {
+public class ListBlockCommand extends SubCommand {
 
-    public RemoveMineCommand() {
-        super(new String[]{"removemine", "rm"}, "Remove a mine", "removemine <name>", "mines.remove");
+    public ListBlockCommand() {
+        super(new String[] {"listblock", "lb"}, "List all blocks in the mine", "listblock <mine>", "flawmines.listblock");
 
         setPlayerOnly(true);
     }
@@ -24,6 +25,8 @@ public class RemoveMineCommand extends SubCommand {
         }
 
         String mineName = args[0];
+
+        // check for mine existence
         Player player = (Player) sender;
         MineManager mineManager = FlawMines.get().getMineManager(player.getWorld());
         Mine mine = mineManager.getMine(mineName);
@@ -31,12 +34,12 @@ public class RemoveMineCommand extends SubCommand {
             return Result.error(this, "§cMine not found!");
         }
 
-        boolean deleted = mineManager.deleteMine(mine);
-        if (!deleted) {
-            return Result.error(this, "§cFailed to delete mine!");
+        // list blocks
+        StringBuilder stringBuilder = new StringBuilder();
+        for (MineBlock mineBlock : mine.getBlocks()) {
+            stringBuilder.append(mineBlock.getBlockData().getItemType().name()).append(": ").append(mineBlock.getPercentage()).append("\n");
         }
-
-        sender.sendMessage("§aMine removed!");
+        sender.sendMessage(stringBuilder.toString());
 
         return Result.success(this);
     }

@@ -5,14 +5,15 @@ import com.sk89q.worldedit.EditSessionFactory;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
+import com.sk89q.worldedit.function.mask.BlockMask;
 import com.sk89q.worldedit.patterns.BlockChance;
 import com.sk89q.worldedit.patterns.RandomFillPattern;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.mine.environment.Environment;
-import dk.martinersej.plugin.mine.mineblock.MineBlock;
-import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.material.MaterialData;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,13 +21,19 @@ import java.util.List;
 public class Mine {
 
     private final String name;
+    private final boolean fillmode;
     private final List<MineBlock> blocks = new ArrayList<>();
     private final List<Environment> environments = new ArrayList<>();
     private final MineRegion mineRegion;
 
-    public Mine(String name, ProtectedRegion region, World world) {
+    public Mine(String name, ProtectedRegion region, World world, boolean fillmode) {
         this.name = name;
         this.mineRegion = new MineRegion(region, world);
+        this.fillmode = fillmode;
+    }
+
+    public Mine(String name, ProtectedRegion region, World world) {
+        this(name, region, world, false);
     }
 
     public List<Environment> getEnvironments() {
@@ -51,26 +58,40 @@ public class Mine {
         // RandomPattern is the new class name for RandomFillPattern.
         // Same for BlockChance.
 
-        //TODO: if its not legacy, we can make it async, in legacy we can not change the blocks async.
-        EditSessionFactory editSession = FlawMines.get().getWorldEdit().getWorldEdit().getEditSessionFactory();
+        Runnable runnable = () -> {
+            EditSessionFactory editSession = FlawMines.get().getWorldEdit().getWorldEdit().getEditSessionFactory();
+            EditSession session = editSession.getEditSession(new BukkitWorld(getWorld()), getRegion().getVolume());
+            // should work, unless we could change it to -1 for a hard fix. I hope it's not necessary.
 
-        EditSession session = editSession.getEditSession(new BukkitWorld(getWorld()), getRegion().getVolume());
-        // should work, unless we could change it to -1 for a hard fix. I hope it's not necessary.
+            try {
+                List<BlockChance> blockChances = new ArrayList<>();
+                if (blocks.isEmpty())
+                    blockChances.add(new BlockChance(new BaseBlock(Material.AIR.getId()), 100));
+                blocks.forEach((block -> {
+                    BaseBlock baseBlock = new BaseBlock(block.getBlockData().getItemType().getId(), block.getBlockData().getData());
+                    blockChances.add(new BlockChance(baseBlock, block.getPercentage()));
+                }));
 
-        try {
-            List<BlockChance> blockChances = new ArrayList<>();
-            blocks.forEach((block -> {
-                BaseBlock baseBlock = new BaseBlock(block.getBlock().getType().getId(), block.getBlock().getData().getData());
-                blockChances.add(new BlockChance(baseBlock, block.getPercentage()));
-            }));
+                RandomFillPattern pattern = new RandomFillPattern(blockChances);
 
-            RandomFillPattern pattern = new RandomFillPattern(blockChances);
+                if (fillmode) {
+                    // Create a mask with air blocks, so we can replace air blocks with the pattern.
+                    BlockMask mask = new BlockMask(session, new BaseBlock(Material.AIR.getId()));
+                    session.replaceBlocks(mineRegion.getRegion(), mask, pattern);
+                } else {
+                    session.setBlocks(mineRegion.getRegion(), pattern);
+                }
+            } catch (MaxChangedBlocksException e) {
+                e.printStackTrace();
+            } finally {
+                session.flushQueue();
+            }
+        };
 
-            session.setBlocks(mineRegion.getRegion(), pattern);
-        } catch (MaxChangedBlocksException e) {
-            e.printStackTrace();
-        } finally {
-            session.flushQueue();
+        if (!FlawMines.isLegacy()) {
+            FlawMines.get().getServer().getScheduler().runTaskAsynchronously(FlawMines.get(), runnable);
+        } else {
+            runnable.run();
         }
     }
 
@@ -89,6 +110,24 @@ public class Mine {
 
     public void addBlock(MineBlock block) {
         blocks.add(block);
+    }
+
+    public MineBlock getBlock(MaterialData materialData) {
+        for (MineBlock block : blocks) {
+            if (block.getBlockData().equals(materialData)) {
+                return block;
+            }
+        }
+        return null;
+    }
+
+    public void updateBlock(MineBlock block) {
+        for (int i = 0; i < blocks.size(); i++) {
+            if (blocks.get(i).getId() == block.getId()) {
+                blocks.set(i, block);
+                return;
+            }
+        }
     }
 
     public void removeBlock(MineBlock block) {

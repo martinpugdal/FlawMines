@@ -1,27 +1,37 @@
 package dk.martinersej.plugin.command;
 
-import dk.martinersej.plugin.FlawMines;
+import dk.martinersej.plugin.command.subcommands.*;
 import dk.martinersej.plugin.utils.command.Command;
+import dk.martinersej.plugin.utils.command.CommandResult;
+import dk.martinersej.plugin.utils.command.Result;
 import org.bukkit.command.CommandSender;
-
-import java.util.Collections;
-import java.util.List;
 
 public class BaseCommand extends Command {
 
-    public BaseCommand(String name, String... aliases) {
-        super(name, aliases);
+    public BaseCommand() {
+        super("flawmines", new String[]{"fm"}, "Main command for FlawMines", "/flawmines <subcommand>");
 
-        inject(FlawMines.get());
+        addSubCommand(new CreateMineCommand());
+        addSubCommand(new RemoveMineCommand());
+        addSubCommand(new ResetMineCommand());
+        addSubCommand(new AddBlockCommand());
+        addSubCommand(new RemoveBlockCommand());
+        addSubCommand(new ListBlockCommand());
     }
 
     @Override
     public boolean run(CommandSender commandSender, String label, String... args) {
-        return runSubCommand(commandSender, args).getResult().isSuccessful();
-    }
+        CommandResult result = runSubCommand(commandSender, args);
+        if (result.getMessage() != null) {
+            commandSender.sendMessage(result.getMessage());
+            return true;
+        }
 
-    @Override
-    public List<String> onTabComplete(CommandSender commandSender, String label, String[] strings) {
-        return Collections.emptyList();
+        if (result.getResult() == Result.WRONG_USAGE) {
+            commandSender.sendMessage(result.getSubCommand().getUsage(label));
+            return true;
+        }
+
+        return result.getResult().isSuccessful();
     }
 }

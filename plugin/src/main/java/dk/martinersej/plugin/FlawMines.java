@@ -5,6 +5,7 @@ import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import dk.martinersej.api.FlawMinesInterface;
 import dk.martinersej.api.worldedit.WorldEditInterface;
 import dk.martinersej.api.worldguard.WorldGuardInterface;
+import dk.martinersej.plugin.command.BaseCommand;
 import dk.martinersej.plugin.utils.command.CommandInjector;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -23,6 +24,7 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
 
     // statically available instance
     private static FlawMines instance;
+    private static boolean legacy = false;
     // mine management
     private final Map<World, MineManager> mineManagers = new HashMap<>();
     // general variables
@@ -30,16 +32,16 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
     private WorldEditInterface worldEditInterface = null;
     private WorldGuardPlugin worldGuard = null;
     private WorldGuardInterface worldGuardInterface = null;
+    private CommandInjector commandInjector;
 
     private MineController mineController;
-    private static CommandInjector commandInjector;
 
     public static FlawMines get() {
         return instance;
     }
 
-    public static CommandInjector getCommandInjector() {
-        return commandInjector;
+    public static boolean isLegacy() {
+        return legacy;
     }
 
     @Override
@@ -49,6 +51,8 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
 
     @Override
     public void onEnable() {
+        // setup legacy
+        setupLegacyCheck();
         // setup WorldEdit
         setupWorldEdit();
         // setup WorldGuard
@@ -73,22 +77,44 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
 
         // setup command injector
         commandInjector = new CommandInjector();
+        // register commands
+        commandInjector.enableCommand(new BaseCommand(), this);
 
-        for (World world : Bukkit.getWorlds()) {
-            MineManager manager = mineManagers.put(world, new MineManager(world));
-            if (manager != null)
-                manager.enable();
-        }
+        // load all worlds
+        Bukkit.getScheduler().runTask(this, () -> {
+            for (World world : Bukkit.getWorlds()) {
+                mineManagers.put(world, new MineManager(world));
+                mineManagers.get(world).enable();
+            }
+        });
     }
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
+        for (MineManager mineManager : mineManagers.values()) {
+            mineManager.disable();
+        }
 
         worldEdit = null;
         worldEditInterface = null;
         worldGuard = null;
         worldGuardInterface = null;
+
+        commandInjector.disableAllCommands();
+        commandInjector = null;
+    }
+
+    private void setupLegacyCheck() {
+        // check version of server
+        String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+        // check if version is 1.12 or lower
+        String[] legacyVersions = {"v1_8", "v1_9", "v1_10", "v1_11", "v1_12"};
+        for (String legacyVersion : legacyVersions) {
+            if (version.startsWith(legacyVersion)) {
+                legacy = true;
+                break;
+            }
+        }
     }
 
     private void setupWorldEdit() {

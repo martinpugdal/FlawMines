@@ -1,10 +1,14 @@
 package dk.martinersej.plugin.utils.command;
 
 public enum Result {
-    NO_PERMISSION, NO_SUB_COMMAND_FOUND, SUCCESS, WRONG_USAGE, CONSOLE_ONLY, PLAYER_ONLY;
+    NO_PERMISSION, NO_SUB_COMMAND_FOUND, SUCCESS, WRONG_USAGE, CONSOLE_ONLY, PLAYER_ONLY, ERROR;
+
+    public static CommandResult getCommandResult(SubCommand subCommand, Result result, String message) {
+        return new CommandResult(subCommand, result, message);
+    }
 
     public static CommandResult getCommandResult(SubCommand subCommand, Result result) {
-        return new CommandResult(subCommand, result);
+        return getCommandResult(subCommand, result, null);
     }
 
     public static CommandResult noPermission(SubCommand subCommand) {
@@ -29,6 +33,14 @@ public enum Result {
 
     public static CommandResult playerOnly(SubCommand subCommand) {
         return getCommandResult(subCommand, PLAYER_ONLY);
+    }
+
+    public static CommandResult error(SubCommand subCommand) {
+        return getCommandResult(subCommand, ERROR);
+    }
+
+    public static CommandResult error(SubCommand subCommand, String message) {
+        return getCommandResult(subCommand, ERROR, message);
     }
 
     public boolean isSuccessful() {

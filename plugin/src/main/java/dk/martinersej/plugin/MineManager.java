@@ -2,7 +2,7 @@ package dk.martinersej.plugin;
 
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dk.martinersej.plugin.mine.Mine;
-import dk.martinersej.plugin.mine.mineblock.MineBlock;
+import dk.martinersej.plugin.mine.MineBlock;
 import org.bukkit.World;
 
 import java.util.HashMap;
@@ -24,6 +24,9 @@ public class MineManager {
         plugin.getLogger().info("Loading mines from world: " + world.getName());
 
         mines.putAll(mineController.loadMines(world));
+        for (Mine mine : mines.values()) {
+            plugin.getLogger().info("Loaded mine: " + mine.getName());
+        }
     }
 
 
@@ -32,6 +35,15 @@ public class MineManager {
             mineController.saveMine(mine);
         }
         mines.clear();
+    }
+
+    public Mine getMine(String name) {
+        for (Mine mine : mines.values()) {
+            if (mine.getName().equalsIgnoreCase(name)) {
+                return mine;
+            }
+        }
+        return null;
     }
 
     public Mine createMine(ProtectedRegion region, String name) {
@@ -49,35 +61,37 @@ public class MineManager {
         return mine;
     }
 
-    public boolean deleteMine(ProtectedRegion region) {
-        Mine mine = mines.get(region);
+    public boolean deleteMine(Mine mine) {
         if (mine == null) {
-            plugin.getLogger().warning("No mine found for region: " + region.getId());
             return false;
         }
 
         mineController.deleteMine(mine.getName(), mine.getRegion().getId());
-        mines.remove(region);
-        plugin.getLogger().info("Mine deleted: " + mine.getName() + " with region: " + region.getId());
+        mines.remove(mine.getRegion().getProtectedRegion());
+        plugin.getLogger().info("Mine deleted: " + mine.getName() + " with region: " + mine.getRegion().getId());
         return true;
     }
 
-    public boolean addBlock(Mine mine, MineBlock block) {
-        if (!block.getBlock().getType().isBlock()) return false;
-
+    public MineBlock addBlock(Mine mine, MineBlock block) {
+        // if a block already exists in mine, get the object and update it
+        MineBlock existingBlock = mine.getBlock(block.getBlockData());
+        if (existingBlock != null) {
+            existingBlock.setPercentage(block.getPercentage());
+            mine.updateBlock(existingBlock);
+            return existingBlock;
+        }
         mine.addBlock(block);
         mineController.addBlock(mine.getName(), block);
-        return true;
+        return null;
     }
 
-    public boolean removeBlock(Mine mine, MineBlock block) {
+    public void removeBlock(Mine mine, MineBlock block) {
         if (block.getId() == -1) {
             plugin.getLogger().warning("Block not found in mine: " + mine.getName());
-            return false;
+            return;
         }
 
         mine.removeBlock(block);
         mineController.removeBlock(block);
-        return true;
     }
 }
