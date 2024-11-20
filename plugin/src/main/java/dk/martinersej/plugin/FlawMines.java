@@ -6,6 +6,7 @@ import dk.martinersej.api.FlawMinesInterface;
 import dk.martinersej.api.worldedit.WorldEditInterface;
 import dk.martinersej.api.worldguard.WorldGuardInterface;
 import dk.martinersej.plugin.command.BaseCommand;
+import dk.martinersej.plugin.mine.MineListener;
 import dk.martinersej.plugin.utils.command.CommandInjector;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -79,6 +80,9 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
         commandInjector = new CommandInjector();
         // register commands
         commandInjector.enableCommand(new BaseCommand(), this);
+
+        // register listeners
+        Bukkit.getPluginManager().registerEvents(new MineListener(), this);
 
         // load all worlds
         Bukkit.getScheduler().runTask(this, () -> {

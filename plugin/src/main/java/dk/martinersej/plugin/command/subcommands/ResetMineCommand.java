@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 public class ResetMineCommand extends SubCommand {
 
     public ResetMineCommand() {
-        super(new String[]{"resetmine", "rm"}, "Reset a mine", "resetmine <mine>", "flawmines.resetmine");
+        super(new String[]{"resetmine"}, "Reset a mine", "resetmine <mine>", "flawmines.resetmine");
 
         setPlayerOnly(true);
     }

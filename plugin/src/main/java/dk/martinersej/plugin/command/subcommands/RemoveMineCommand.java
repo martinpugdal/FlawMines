@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 public class RemoveMineCommand extends SubCommand {
 
     public RemoveMineCommand() {
-        super(new String[]{"removemine", "rm"}, "Remove a mine", "removemine <name>", "mines.remove");
+        super(new String[]{"removemine"}, "Remove a mine", "removemine <name>", "mines.remove");
 
         setPlayerOnly(true);
     }

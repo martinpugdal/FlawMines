@@ -14,9 +14,12 @@ public class BaseCommand extends Command {
         addSubCommand(new CreateMineCommand());
         addSubCommand(new RemoveMineCommand());
         addSubCommand(new ResetMineCommand());
+        addSubCommand(new SetTeleportMineCommand());
+        addSubCommand(new FillmodeMineCommand());
         addSubCommand(new AddBlockCommand());
         addSubCommand(new RemoveBlockCommand());
         addSubCommand(new ListBlockCommand());
+        addSubCommand(new EnvironmentCreateCommand());
     }
 
     @Override

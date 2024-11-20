@@ -28,11 +28,13 @@ public class AddBlockCommand extends SubCommand {
 
         String mineName = args[0];
         String[] data = args[1].split(":"); // block:meta if needed
-        Material material = Material.matchMaterial(data[0]);
         byte meta = 0;
         try {
             meta = Byte.parseByte(data[1]);
-        } catch (NumberFormatException | ArrayIndexOutOfBoundsException ignored) {}
+        } catch (ArrayIndexOutOfBoundsException ignored) {} catch (NumberFormatException e) {
+            return Result.error(this, "§cInvalid meta!");
+        }
+
         MaterialData materialData = new MaterialData(Material.matchMaterial(data[0]), meta);
         if (materialData.getItemType() == null) {
             return Result.error(this, "§cInvalid block!");
@@ -40,7 +42,7 @@ public class AddBlockCommand extends SubCommand {
         if (!materialData.getItemType().isBlock()) {
             return Result.error(this, "§cIs not a block!");
         }
-        float percentage = -1;
+        float percentage;
         try {
             percentage = Float.parseFloat(args[2]);
         } catch (NumberFormatException e) {
@@ -61,7 +63,7 @@ public class AddBlockCommand extends SubCommand {
         }
 
         // add block
-        MineBlock mineBlock = mineManager.addBlock(mine, new MineBlock(material, percentage));
+        MineBlock mineBlock = mineManager.addBlock(mine, new MineBlock(materialData, percentage));
         // use the mineblock to tell the output what we have as percentage
 
         if (mineBlock != null) {

@@ -10,10 +10,15 @@ import com.sk89q.worldedit.patterns.BlockChance;
 import com.sk89q.worldedit.patterns.RandomFillPattern;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dk.martinersej.plugin.FlawMines;
+import dk.martinersej.plugin.events.MineResetEvent;
 import dk.martinersej.plugin.mine.environment.Environment;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.material.MaterialData;
+import org.bukkit.util.BlockVector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,19 +26,25 @@ import java.util.List;
 public class Mine {
 
     private final String name;
-    private final boolean fillmode;
+    private boolean fillmode;
+    private BlockVector teleportLocation;
     private final List<MineBlock> blocks = new ArrayList<>();
     private final List<Environment> environments = new ArrayList<>();
     private final MineRegion mineRegion;
 
-    public Mine(String name, ProtectedRegion region, World world, boolean fillmode) {
+    public Mine(String name, ProtectedRegion region, World world, boolean fillmode, BlockVector teleportLocation) {
         this.name = name;
         this.mineRegion = new MineRegion(region, world);
         this.fillmode = fillmode;
+        this.teleportLocation = teleportLocation;
+    }
+
+    public Mine(String name, ProtectedRegion region, World world, boolean fillmode) {
+        this(name, region, world, fillmode, new BlockVector(region.getMaximumPoint().getBlockX(), region.getMaximumPoint().getBlockY(), region.getMaximumPoint().getBlockZ()));
     }
 
     public Mine(String name, ProtectedRegion region, World world) {
-        this(name, region, world, false);
+        this(name, region, world, false, new BlockVector(region.getMaximumPoint().getBlockX(), region.getMaximumPoint().getBlockY(), region.getMaximumPoint().getBlockZ()));
     }
 
     public List<Environment> getEnvironments() {
@@ -64,6 +75,14 @@ public class Mine {
             // should work, unless we could change it to -1 for a hard fix. I hope it's not necessary.
 
             try {
+                // get players inside the mine and teleport them to the teleport location
+                List<Player> players = mineRegion.playersWithinRegion();
+                Location teleportLocation = getTeleportLocationAsLocation();
+                for (Player player : players) {
+                    player.teleport(teleportLocation);
+                }
+
+                // add the blocks to the pattern
                 List<BlockChance> blockChances = new ArrayList<>();
                 if (blocks.isEmpty())
                     blockChances.add(new BlockChance(new BaseBlock(Material.AIR.getId()), 100));
@@ -72,6 +91,7 @@ public class Mine {
                     blockChances.add(new BlockChance(baseBlock, block.getPercentage()));
                 }));
 
+                // create the pattern
                 RandomFillPattern pattern = new RandomFillPattern(blockChances);
 
                 if (fillmode) {
@@ -85,6 +105,7 @@ public class Mine {
                 e.printStackTrace();
             } finally {
                 session.flushQueue();
+                resetFinished();
             }
         };
 
@@ -104,8 +125,11 @@ public class Mine {
     }
 
     private void resetFinished() {
-        //todo: implement a way to reset conditions then we have implemented the conditions.
-        //todo: call the api? Event? Idk yet.
+        for (Environment environment : environments) {
+            environment.reset();
+        }
+
+        Bukkit.getPluginManager().callEvent(new MineResetEvent(this));
     }
 
     public void addBlock(MineBlock block) {
@@ -134,17 +158,27 @@ public class Mine {
         blocks.remove(block);
     }
 
-    public void clearBlocks() {
-        blocks.clear();
-    }
-
     public String getName() {
         return name;
     }
 
-    @Override
-    public int hashCode() {
-        // generate hashcode from name and region
-        return (name + getWorld().getName()).hashCode();
+    public BlockVector getTeleportLocation() {
+        return teleportLocation;
+    }
+
+    public Location getTeleportLocationAsLocation() {
+        return teleportLocation.toLocation(getWorld());
+    }
+
+    public void setTeleportLocation(BlockVector teleportLocation) {
+        this.teleportLocation = teleportLocation;
+    }
+
+    public boolean isFillmode() {
+        return fillmode;
+    }
+
+    public void setFillmode(boolean fillmode) {
+        this.fillmode = fillmode;
     }
 }

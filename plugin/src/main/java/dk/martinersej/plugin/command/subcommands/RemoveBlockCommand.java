@@ -29,24 +29,28 @@ public class RemoveBlockCommand extends SubCommand {
 
         String mineName = args[0];
         String[] data = args[1].split(":"); // block:meta if needed
-        Material material = Material.matchMaterial(data[0]);
         byte meta = 0;
         try {
             meta = Byte.parseByte(data[1]);
-        } catch (NumberFormatException | ArrayIndexOutOfBoundsException ignored) {}
-
-        if (material == null || !material.isBlock()) {
-            return Result.error(this, "§cInvalid block!");
+        } catch (ArrayIndexOutOfBoundsException ignored) {} catch (NumberFormatException e) {
+            return Result.error(this, "§cInvalid meta!");
         }
 
-        // check for block existence
+        MaterialData materialData = new MaterialData(Material.matchMaterial(data[0]), meta);
+        if (materialData.getItemType() == null) {
+            return Result.error(this, "§cInvalid block!");
+        }
+        if (!materialData.getItemType().isBlock()) {
+            return Result.error(this, "§cIs not a block!");
+        }
+
+        // check for mine existence
         Player player = (Player) sender;
         MineManager mineManager = FlawMines.get().getMineManager(player.getWorld());
         Mine mine = mineManager.getMine(mineName);
         if (mine == null) {
             return Result.error(this, "§cYou are not in a mine!");
         }
-        MaterialData materialData = new MaterialData(material, meta);
         MineBlock block = mine.getBlock(materialData);
         if (block == null) {
             return Result.error(this, "§cBlock not found!");

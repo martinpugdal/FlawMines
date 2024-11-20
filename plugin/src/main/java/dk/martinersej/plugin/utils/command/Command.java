@@ -185,6 +185,16 @@ public abstract class Command extends org.bukkit.command.Command implements Plug
         return completions;
     }
 
+    protected List<String> filterStartingWith(String string, List<String> values) {
+        List<String> completions = new ArrayList<>();
+        for (String s : values) {
+            if (s.startsWith(string)) {
+                completions.add(s);
+            }
+        }
+        return completions;
+    }
+
     public String getDescription() {
         return this.description;
     }

@@ -140,7 +140,7 @@ public class MineController {
                         continue;
                     }
 
-                    Mine mine = new Mine(mineId, region, world, false);
+                    Mine mine = new Mine(mineId, region, world, fillmode);
                     mines.put(region, mine);
 
                     String queryBlocks = "SELECT mB.id AS blockId, mB.data AS blockData " +
@@ -166,7 +166,7 @@ public class MineController {
                     environmentStatement.setString(1, mineId);
                     ResultSet environmentResultSet = environmentStatement.executeQuery();
                     while (environmentResultSet.next()) {
-                        Environment environment = Environment.deserialize(environmentResultSet.getString("environmentData"));
+                        Environment environment = Environment.deserialize(mine, environmentResultSet.getString("environmentData"));
                         environment.setId(environmentResultSet.getInt("environmentId"));
                         mine.addEnvironment(environment);
                     }
@@ -181,11 +181,28 @@ public class MineController {
         return mines;
     }
 
+    public void saveOnlyMine(Mine mine) {
+        sync((connection) -> {
+            try {
+                PreparedStatement statement = connection.prepareStatement(
+                    "UPDATE mines SET world = ?, region = ?, fillmode = ?, teleportLocation = ? WHERE id = ?"
+                );
+                statement.setString(1, mine.getWorld().getName());
+                statement.setString(2, mine.getRegion().getProtectedRegion().getId());
+                statement.setString(3, mine.getName());
+                statement.setBoolean(4, mine.isFillmode());
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
     public void saveMine(Mine mine) {
         sync((connection) -> {
             try {
                 PreparedStatement statement = connection.prepareStatement(
-                    "UPDATE mines SET world = ?, region = ? WHERE id = ?"
+                    "UPDATE mines SET world = ?, region = ?, fillmode = ?, teleportLocation = ? WHERE id = ?"
                 );
                 statement.setString(1, mine.getWorld().getName());
                 statement.setString(2, mine.getRegion().getProtectedRegion().getId());
@@ -283,6 +300,52 @@ public class MineController {
                     "DELETE FROM mineBlocks WHERE id = ?"
                 );
                 statement.setInt(1, block.getId());
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public void addEnvironment(String name, Environment environment) {
+        sync((connection) -> {
+            try {
+                PreparedStatement statement = connection.prepareStatement(
+                    "INSERT INTO mineEnvironments (mineId, type, data) VALUES (?, ?, ?)"
+                );
+                statement.setString(1, name);
+                statement.setString(2, environment.getClass().getSimpleName());
+                statement.setString(3, environment.serialize());
+                int id = statement.executeUpdate(); // get the id of the environment
+                environment.setId(id);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public void updateEnvironment(Environment environment) {
+        sync((connection) -> {
+            try {
+                PreparedStatement statement = connection.prepareStatement(
+                    "UPDATE mineEnvironments SET data = ? WHERE id = ?"
+                );
+                statement.setString(1, environment.serialize());
+                statement.setInt(2, environment.getId());
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public void removeEnvironment(Environment environment) {
+        sync((connection) -> {
+            try {
+                PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM mineEnvironments WHERE id = ?"
+                );
+                statement.setInt(1, environment.getId());
                 statement.executeUpdate();
             } catch (SQLException e) {
                 throw new RuntimeException(e);

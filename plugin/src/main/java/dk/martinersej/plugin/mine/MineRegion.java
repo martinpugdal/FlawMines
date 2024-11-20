@@ -5,16 +5,22 @@ import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.regions.Polygonal2DRegion;
 import com.sk89q.worldedit.regions.Region;
+import com.sk89q.worldguard.protection.ApplicableRegionSet;
+import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
+import dk.martinersej.plugin.FlawMines;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MineRegion {
 
     private final Region region;
     private final ProtectedRegion protectedRegion;
+    private int volume = -1;
 
     public MineRegion(ProtectedRegion protectedRegion, World world) {
         this.protectedRegion = protectedRegion;
@@ -55,8 +61,23 @@ public class MineRegion {
         return protectedRegion;
     }
 
-    private int volume = -1;
     public int getVolume() {
         return volume;
+    }
+
+    public List<Player> playersWithinRegion() {
+        // get all players within a region
+        World world = ((BukkitWorld) region.getWorld()).getWorld();
+        List<Player> players = new ArrayList<>(world.getPlayers());
+        RegionManager regionManager = FlawMines.get().getWorldGuardInterface().getRegionManager(world);
+        return players.stream()
+            .filter(player -> {
+                ApplicableRegionSet regionSet = regionManager.getApplicableRegions(player.getLocation());
+                for (ProtectedRegion region : regionSet) {
+                    if (protectedRegion.equals(region)) return true;
+                }
+                return false;
+            })
+            .collect(Collectors.toList());
     }
 }

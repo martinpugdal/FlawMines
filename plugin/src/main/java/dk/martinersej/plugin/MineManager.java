@@ -3,10 +3,18 @@ package dk.martinersej.plugin;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dk.martinersej.plugin.mine.Mine;
 import dk.martinersej.plugin.mine.MineBlock;
+import dk.martinersej.plugin.mine.environment.Environment;
+import dk.martinersej.plugin.mine.environment.EnvironmentType;
+import dk.martinersej.plugin.mine.environment.environments.DestroyedEnvironment;
+import dk.martinersej.plugin.mine.environment.environments.ScheduledEnvironment;
 import org.bukkit.World;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class MineManager {
 
@@ -46,6 +54,10 @@ public class MineManager {
         return null;
     }
 
+    public Mine getMine(ProtectedRegion region) {
+        return mines.get(region);
+    }
+
     public Mine createMine(ProtectedRegion region, String name) {
         Mine mineLookup = mines.get(region);
         if (mineLookup != null && mineLookup.getRegion().getProtectedRegion().equals(region)) { // mine already exists
@@ -77,7 +89,7 @@ public class MineManager {
         MineBlock existingBlock = mine.getBlock(block.getBlockData());
         if (existingBlock != null) {
             existingBlock.setPercentage(block.getPercentage());
-            mine.updateBlock(existingBlock);
+            mineController.updateBlock(existingBlock);
             return existingBlock;
         }
         mine.addBlock(block);
@@ -93,5 +105,40 @@ public class MineManager {
 
         mine.removeBlock(block);
         mineController.removeBlock(block);
+    }
+
+    public Environment createEnvironment(Mine mine, EnvironmentType environmentType, Object[] values) {
+        switch (environmentType) {
+            case DESTROYED: {
+                try {
+                    float ratio = Float.parseFloat((String) values[0]);
+                    return new DestroyedEnvironment(mine, ratio);
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+            }
+            case SCHEDULED: {
+                try {
+                    int interval = Integer.parseInt((String) values[0]);
+                    return new ScheduledEnvironment(mine, interval);
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+            }
+            default:
+                return null;
+        }
+    }
+
+    public void editMine(Mine mine, Consumer<Mine> function) {
+        function.andThen((v) -> mineController.saveOnlyMine(mine)).accept(mine);
+    }
+
+    public List<String> getMineNames() {
+        List<String> mineNames = new ArrayList<>();
+        for (Mine mine : mines.values()) {
+            mineNames.add(mine.getName());
+        }
+        return mineNames;
     }
 }
