@@ -46,7 +46,6 @@ public class MineBlock {
         }
         data.put("weight", String.valueOf(getWeight()));
 
-        // Serialize the data map
         return data.entrySet().stream().map(entry -> entry.getKey() + ":" + entry.getValue()).reduce((a, b) -> a + "," + b).orElse("");
     }
 

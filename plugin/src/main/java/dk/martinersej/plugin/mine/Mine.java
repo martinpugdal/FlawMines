@@ -56,7 +56,6 @@ public class Mine {
     }
 
     public World getWorld() {
-        // get world from region
         return ((BukkitWorld) mineRegion.getRegion().getWorld()).getWorld();
     }
 
@@ -66,10 +65,8 @@ public class Mine {
 
     public void reset() {
         EditSessionFactory editSession = FlawMines.get().getWorldEdit().getWorldEdit().getEditSessionFactory();
-        // should work, unless we could change it to -1 for a hard fix. I hope it's not necessary.
         EditSession session = editSession.getEditSession(new BukkitWorld(getWorld()), getRegion().getVolume());
         try {
-            // get players inside the mine and teleport them to the teleport location
             List<Player> players = mineRegion.playersWithinRegion();
             Location teleportLocation = getTeleportLocationAsLocation();
             for (Player player : players) {
@@ -180,7 +177,6 @@ public class Mine {
         return null;
     }
 
-    // example: getEnvironments(ScheduledEnvironment.class) will return all ScheduledEnvironments
     public List<Environment> getEnvironments(Class<? extends Environment> clazz) {
         List<Environment> result = new ArrayList<>();
         for (Environment environment : environments) {

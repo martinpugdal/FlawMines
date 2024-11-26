@@ -24,7 +24,6 @@ public class MineRegion {
     public MineRegion(ProtectedRegion protectedRegion, World world) {
         this.protectedRegion = protectedRegion;
 
-        // get the region from worldedit, so we can use it for reset of the mine or similar
         WorldEditInterface worldEditInterface = FlawMines.get().getWorldEditInterface();
         WorldGuardInterface worldGuardInterface = FlawMines.get().getWorldGuardInterface();
         switch (protectedRegion.getType()) {
@@ -47,7 +46,6 @@ public class MineRegion {
                 region = null;
         }
 
-        // calculate the volume of the region
         if (region != null) {
             volume = region.getArea() * region.getHeight();
         }
@@ -70,7 +68,6 @@ public class MineRegion {
     }
 
     public List<Player> playersWithinRegion() {
-        // get all players within a region
         World world = ((BukkitWorld) region.getWorld()).getWorld();
         List<Player> players = new ArrayList<>(world.getPlayers());
         return players.stream()

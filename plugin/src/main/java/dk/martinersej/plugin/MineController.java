@@ -148,11 +148,10 @@ public class MineController {
                         try {
                             map.put(split[0], Double.parseDouble(split[1]));
                         } catch (NumberFormatException e) {
-                            map.put(split[0], 0); // default to 0, should never happen
+                            map.put(split[0], 0);
                         }
                     }
 
-                    // worldguard support for getting a region
                     ProtectedRegion region = plugin.getWorldGuardInterface().getRegionManager(world).getRegion(regionName);
                     if (region == null) {
                         plugin.getLogger().warning("Mine region not found: " + regionName);
@@ -231,10 +230,8 @@ public class MineController {
     public void saveMine(Mine mine) {
         sync((connection) -> {
             try {
-                // Save the current autoCommit state and disable it for transaction
                 connection.setAutoCommit(false);
 
-                // Main update statements
                 PreparedStatement statement = connection.prepareStatement(
                     "UPDATE mines SET world = ?, region = ?, fillmode = ?, teleportLocation = ? WHERE id = ?"
                 );
@@ -263,12 +260,10 @@ public class MineController {
                     environmentStatement.addBatch();
                 }
 
-                // Execute updates
                 statement.executeUpdate();
                 blockStatement.executeBatch();
                 environmentStatement.executeBatch();
 
-                // Commit transaction
                 connection.commit();
             } catch (SQLException e) {
                 try {
@@ -358,7 +353,7 @@ public class MineController {
                 statement.setString(1, name);
                 statement.setString(2, environment.getClass().getSimpleName());
                 statement.setString(3, environment.serialize());
-                int id = statement.executeUpdate(); // get the id of the environment
+                int id = statement.executeUpdate();
                 environment.setId(id);
             } catch (SQLException e) {
                 throw new RuntimeException(e);

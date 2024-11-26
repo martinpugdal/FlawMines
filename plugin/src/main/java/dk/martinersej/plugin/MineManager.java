@@ -60,12 +60,11 @@ public class MineManager {
 
     public Mine createMine(ProtectedRegion region, String name) {
         Mine mineLookup = mines.get(region);
-        if (mineLookup != null && mineLookup.getRegion().getProtectedRegion().equals(region)) { // mine already exists
+        if (mineLookup != null && mineLookup.getRegion().getProtectedRegion().equals(region)) {
             plugin.getLogger().warning("Mine already exists for region: " + region.getId());
             return null;
         }
 
-        // continue creating mine
         Mine mine = new Mine(name, region, world);
         mines.put(region, mine);
         WorldGuardInterface worldGuardInterface = plugin.getWorldGuardInterface();
@@ -85,7 +84,6 @@ public class MineManager {
     }
 
     public MineBlock addBlock(Mine mine, MineBlock block) {
-        // if a block already exists in mine, get the object and update it
         MineBlock existingBlock = mine.getBlock(block.getBlockData());
         if (existingBlock != null) {
             existingBlock.setWeight(block.getWeight());
