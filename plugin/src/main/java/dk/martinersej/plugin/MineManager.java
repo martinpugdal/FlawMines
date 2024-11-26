@@ -64,9 +64,6 @@ public class MineManager {
             plugin.getLogger().warning("Mine already exists for region: " + region.getId());
             return null;
         }
-        if (mineLookup != null) { // mine exists but region is different
-            mineLookup.remove();
-        }
 
         // continue creating mine
         Mine mine = new Mine(name, region, world);
