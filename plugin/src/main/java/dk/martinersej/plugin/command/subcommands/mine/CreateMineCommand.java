@@ -1,4 +1,4 @@
-package dk.martinersej.plugin.command.subcommands;
+package dk.martinersej.plugin.command.subcommands.mine;
 
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dk.martinersej.api.worldedit.WorldEditSelection;

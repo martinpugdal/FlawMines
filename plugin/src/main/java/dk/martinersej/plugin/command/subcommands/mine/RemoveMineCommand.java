@@ -1,4 +1,4 @@
-package dk.martinersej.plugin.command.subcommands;
+package dk.martinersej.plugin.command.subcommands.mine;
 
 import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.MineManager;
@@ -9,10 +9,10 @@ import dk.martinersej.plugin.utils.command.SubCommand;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-public class ResetMineCommand extends SubCommand {
+public class RemoveMineCommand extends SubCommand {
 
-    public ResetMineCommand() {
-        super(new String[]{"resetmine"}, "Reset a mine", "resetmine <mine>", "flawmines.resetmine");
+    public RemoveMineCommand() {
+        super(new String[]{"removemine"}, "Remove a mine", "removemine <name>", "mines.remove");
 
         setPlayerOnly(true);
     }
@@ -24,17 +24,19 @@ public class ResetMineCommand extends SubCommand {
         }
 
         String mineName = args[0];
-
-        // check for mine existence
         Player player = (Player) sender;
         MineManager mineManager = FlawMines.get().getMineManager(player.getWorld());
         Mine mine = mineManager.getMine(mineName);
         if (mine == null) {
             return Result.error(this, "§cMine not found!");
         }
-        mine.reset();
 
-        sender.sendMessage("§aMine reset!");
+        boolean deleted = mineManager.deleteMine(mine);
+        if (!deleted) {
+            return Result.error(this, "§cFailed to delete mine!");
+        }
+
+        sender.sendMessage("§aMine removed!");
 
         return Result.success(this);
     }

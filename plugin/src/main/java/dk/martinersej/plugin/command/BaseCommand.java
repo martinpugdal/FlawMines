@@ -1,6 +1,17 @@
 package dk.martinersej.plugin.command;
 
-import dk.martinersej.plugin.command.subcommands.*;
+import dk.martinersej.plugin.command.subcommands.block.AddBlockCommand;
+import dk.martinersej.plugin.command.subcommands.block.ListBlockCommand;
+import dk.martinersej.plugin.command.subcommands.block.RemoveBlockCommand;
+import dk.martinersej.plugin.command.subcommands.environment.AddEnvironmentCommand;
+import dk.martinersej.plugin.command.subcommands.environment.ListEnvironmentCommand;
+import dk.martinersej.plugin.command.subcommands.environment.RemoveEnvironmentCommand;
+import dk.martinersej.plugin.command.subcommands.mine.CreateMineCommand;
+import dk.martinersej.plugin.command.subcommands.mine.ListMinesCommand;
+import dk.martinersej.plugin.command.subcommands.mine.RemoveMineCommand;
+import dk.martinersej.plugin.command.subcommands.mine.ResetMineCommand;
+import dk.martinersej.plugin.command.subcommands.utility.FillmodeMineCommand;
+import dk.martinersej.plugin.command.subcommands.utility.SetTeleportMineCommand;
 import dk.martinersej.plugin.utils.command.Command;
 import dk.martinersej.plugin.utils.command.CommandResult;
 import dk.martinersej.plugin.utils.command.Result;

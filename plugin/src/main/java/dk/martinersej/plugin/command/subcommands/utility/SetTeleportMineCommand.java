@@ -1,4 +1,4 @@
-package dk.martinersej.plugin.command.subcommands;
+package dk.martinersej.plugin.command.subcommands.utility;
 
 import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.MineManager;

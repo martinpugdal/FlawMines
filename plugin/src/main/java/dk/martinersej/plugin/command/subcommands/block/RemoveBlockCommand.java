@@ -1,4 +1,4 @@
-package dk.martinersej.plugin.command.subcommands;
+package dk.martinersej.plugin.command.subcommands.block;
 
 import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.MineManager;
@@ -10,7 +10,6 @@ import dk.martinersej.plugin.utils.command.SubCommand;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
 
 public class RemoveBlockCommand extends SubCommand {
