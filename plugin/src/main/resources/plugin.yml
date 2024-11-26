@@ -1,7 +1,7 @@
 name: FlawMines
 version: '1.0'
 main: dk.martinersej.plugin.FlawMines
-api-version: '1.20.4'
+api-version: '1.20'
 depend:
   - WorldEdit
   - WorldGuard

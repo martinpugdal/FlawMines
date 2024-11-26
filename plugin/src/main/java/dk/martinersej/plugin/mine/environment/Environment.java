@@ -27,27 +27,33 @@ public abstract class Environment {
 
     public abstract String serialize();
 
-    public static Environment deserialize(Mine mine, String data) {
+    public abstract EnvironmentType getType();
+
+    public static Environment deserialize(Mine mine, String type, String data) {
         // Deserialize the data
         Map<String, String> map = new HashMap<>();
         for (String entry : data.split(",")) {
             String[] split = entry.split(":");
-            map.put(split[0], split[1]);
+            if (split.length == 2) {
+                map.put(split[0], split[1]);
+            }
         }
 
         Environment environment;
-        int id = Integer.parseInt(map.get("id"));
-        if (map.get("type").equals("destroyed")) {
-            environment = DestroyedEnvironment.deserialize(mine, data);
-        } else if (map.get("type").equals("scheduled")) {
-            environment = ScheduledEnvironment.deserialize(mine, data);
-        } else {
-            throw new IllegalArgumentException("Unknown environment type: " + map.get("type"));
+        switch (type) {
+            case "DestroyedEnvironment":
+                environment = DestroyedEnvironment.deserialize(mine, data);
+                break;
+            case "ScheduledEnvironment":
+                environment = ScheduledEnvironment.deserialize(mine, data);
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown environment type: " + type);
         }
-        environment.setId(id);
 
         return environment;
     }
+
 
     public int getId() {
         return id;
@@ -55,5 +61,9 @@ public abstract class Environment {
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public void kill() {
+        finished = true;
     }
 }

@@ -6,6 +6,8 @@ import dk.martinersej.plugin.mine.environment.Environment;
 import dk.martinersej.plugin.mine.MineBlock;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.util.BlockVector;
+import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.sql.*;
@@ -73,7 +75,8 @@ public class MineController {
             "id TEXT NOT NULL PRIMARY KEY," + // the name of the mine
             "world TEXT NOT NULL," + // where its located
             "region TEXT NOT NULL, " + // the region name
-            "fillmode INT(1) DEFAULT 0" + // if the mine is in fillmode
+            "fillmode INT(1) DEFAULT 0, " + // if the mine is in fillmode
+            "teleportLocation TEXT" + // the location to teleport to
             ");";
         tables.add(minesTable);
 
@@ -105,12 +108,18 @@ public class MineController {
         });
     }
 
-    public void createMine(String id, World world, String region) {
+    public void createMine(String id, World world, String region, Vector maximumPoint) {
         sync((connection) -> {
             try {
-                connection.createStatement().executeUpdate(
-                    String.format("INSERT INTO mines (id, world, region) VALUES ('%s', '%s', '%s')", id, world.getName(), region)
+                PreparedStatement statement = connection.prepareStatement(
+                    "INSERT INTO mines (id, world, region, teleportLocation) VALUES (?, ?, ?, ?)"
                 );
+                statement.setString(1, id);
+                statement.setString(2, world.getName());
+                statement.setString(3, region);
+                statement.setString(4, serializeTeleportLocation(maximumPoint));
+
+                statement.executeUpdate();
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
@@ -132,6 +141,16 @@ public class MineController {
                     String mineId = resultSet.getString("id");
                     String regionName = resultSet.getString("region");
                     boolean fillmode = resultSet.getBoolean("fillmode");
+                    String teleportLocation = resultSet.getString("teleportLocation");
+                    Map<String, Object> map = new HashMap<>();
+                    for (String entry : teleportLocation.split(",")) {
+                        String[] split = entry.split(":");
+                        try {
+                            map.put(split[0], Double.parseDouble(split[1]));
+                        } catch (NumberFormatException e) {
+                            map.put(split[0], 0); // default to 0, should never happen
+                        }
+                    }
 
                     // worldguard support for getting a region
                     ProtectedRegion region = plugin.getWorldGuardInterface().getRegionManager(world).getRegion(regionName);
@@ -140,7 +159,7 @@ public class MineController {
                         continue;
                     }
 
-                    Mine mine = new Mine(mineId, region, world, fillmode);
+                    Mine mine = new Mine(mineId, region, world, fillmode, BlockVector.deserialize(map));
                     mines.put(region, mine);
 
                     String queryBlocks = "SELECT mB.id AS blockId, mB.data AS blockData " +
@@ -166,7 +185,9 @@ public class MineController {
                     environmentStatement.setString(1, mineId);
                     ResultSet environmentResultSet = environmentStatement.executeQuery();
                     while (environmentResultSet.next()) {
-                        Environment environment = Environment.deserialize(mine, environmentResultSet.getString("environmentData"));
+                        String environmentType = environmentResultSet.getString("environmentType");
+                        String environmentData = environmentResultSet.getString("environmentData");
+                        Environment environment = Environment.deserialize(mine, environmentType, environmentData);
                         environment.setId(environmentResultSet.getInt("environmentId"));
                         mine.addEnvironment(environment);
                     }
@@ -191,6 +212,8 @@ public class MineController {
                 statement.setString(2, mine.getRegion().getProtectedRegion().getId());
                 statement.setString(3, mine.getName());
                 statement.setBoolean(4, mine.isFillmode());
+                String teleportVectorMappedToString = serializeTeleportLocation(mine.getTeleportLocation());
+                statement.setString(5, teleportVectorMappedToString);
                 statement.executeUpdate();
             } catch (SQLException e) {
                 throw new RuntimeException(e);
@@ -198,18 +221,32 @@ public class MineController {
         });
     }
 
+    private String serializeTeleportLocation(Vector teleportLocation) {
+        return teleportLocation.serialize().entrySet().stream()
+            .map(entry -> entry.getKey() + ":" + entry.getValue())
+            .reduce((a, b) -> a + "," + b)
+            .orElse("");
+    }
+
     public void saveMine(Mine mine) {
         sync((connection) -> {
             try {
+                // Save the current autoCommit state and disable it for transaction
+                connection.setAutoCommit(false);
+
+                // Main update statements
                 PreparedStatement statement = connection.prepareStatement(
                     "UPDATE mines SET world = ?, region = ?, fillmode = ?, teleportLocation = ? WHERE id = ?"
                 );
                 statement.setString(1, mine.getWorld().getName());
                 statement.setString(2, mine.getRegion().getProtectedRegion().getId());
                 statement.setString(3, mine.getName());
+                statement.setBoolean(4, mine.isFillmode());
+                String teleportVectorMappedToString = serializeTeleportLocation(mine.getTeleportLocation());
+                statement.setString(5, teleportVectorMappedToString);
 
                 PreparedStatement blockStatement = connection.prepareStatement(
-                    "UPDATE mineBlocks SET data = ? WHERE id = ?" // mineId is not needed for update, only insert
+                    "UPDATE mineBlocks SET data = ? WHERE id = ?"
                 );
                 for (MineBlock block : mine.getBlocks()) {
                     blockStatement.setInt(1, block.getId());
@@ -218,7 +255,7 @@ public class MineController {
                 }
 
                 PreparedStatement environmentStatement = connection.prepareStatement(
-                    "UPDATE mineEnvironments SET data = ? WHERE id = ?" // mineId is not needed for update, only insert
+                    "UPDATE mineEnvironments SET data = ? WHERE id = ?"
                 );
                 for (Environment environment : mine.getEnvironments()) {
                     environmentStatement.setString(1, environment.serialize());
@@ -226,26 +263,31 @@ public class MineController {
                     environmentStatement.addBatch();
                 }
 
-                connection.setAutoCommit(false);
+                // Execute updates
                 statement.executeUpdate();
                 blockStatement.executeBatch();
                 environmentStatement.executeBatch();
+
+                // Commit transaction
                 connection.commit();
             } catch (SQLException e) {
                 try {
-                    connection.rollback();
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
+                    if (!connection.getAutoCommit())
+                        connection.rollback();
+                } catch (SQLException rollbackEx) {
+                    rollbackEx.printStackTrace();
                 }
+                e.printStackTrace();
             } finally {
                 try {
                     connection.setAutoCommit(true);
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
+                } catch (SQLException e) {
+                    e.printStackTrace();
                 }
             }
         });
     }
+
 
     public void deleteMine(String id, String region) {
         sync((connection) -> {

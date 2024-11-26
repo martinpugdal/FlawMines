@@ -1,19 +1,18 @@
 package dk.martinersej.plugin.mine;
 
-import com.sk89q.worldedit.BlockVector2D;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
-import com.sk89q.worldedit.regions.CuboidRegion;
-import com.sk89q.worldedit.regions.Polygonal2DRegion;
 import com.sk89q.worldedit.regions.Region;
-import com.sk89q.worldguard.protection.ApplicableRegionSet;
-import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
+import dk.martinersej.api.worldedit.WorldEditInterface;
+import dk.martinersej.api.worldguard.WorldGuardInterface;
 import dk.martinersej.plugin.FlawMines;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class MineRegion {
@@ -26,18 +25,23 @@ public class MineRegion {
         this.protectedRegion = protectedRegion;
 
         // get the region from worldedit, so we can use it for reset of the mine or similar
-        BukkitWorld bukkitWorld = new BukkitWorld(world);
+        WorldEditInterface worldEditInterface = FlawMines.get().getWorldEditInterface();
+        WorldGuardInterface worldGuardInterface = FlawMines.get().getWorldGuardInterface();
         switch (protectedRegion.getType()) {
             case CUBOID:
-                region = new CuboidRegion(bukkitWorld, protectedRegion.getMaximumPoint(), protectedRegion.getMinimumPoint());
+                Vector maxP = worldGuardInterface.getMaximumPoint(protectedRegion);
+                Vector minP = worldGuardInterface.getMinimumPoint(protectedRegion);
+                region = worldEditInterface.createCuboidRegion(
+                    world,
+                    minP,
+                    maxP
+                );
                 break;
             case POLYGON:
-                List<BlockVector2D> points = new ArrayList<>();
-                for (BlockVector2D blockVector : protectedRegion.getPoints()) {
-                    points.add(new BlockVector2D(blockVector.getX(), blockVector.getZ()));
-                }
-                int yDiff = protectedRegion.getMaximumPoint().getBlockY() - protectedRegion.getMinimumPoint().getBlockY();
-                region = new Polygonal2DRegion(bukkitWorld, points, 0, yDiff); // idk about the minY and minY work
+                List<Vector> regionPoints = worldGuardInterface.getRegionPoints(protectedRegion);
+                int yMax = worldGuardInterface.getMaximumPoint(protectedRegion).getBlockY();
+                int yMin = worldGuardInterface.getMinimumPoint(protectedRegion).getBlockY();
+                region = worldEditInterface.createPolygonalRegion(world, regionPoints, yMin, yMax);
                 break;
             default:
                 region = null;
@@ -69,14 +73,10 @@ public class MineRegion {
         // get all players within a region
         World world = ((BukkitWorld) region.getWorld()).getWorld();
         List<Player> players = new ArrayList<>(world.getPlayers());
-        RegionManager regionManager = FlawMines.get().getWorldGuardInterface().getRegionManager(world);
         return players.stream()
             .filter(player -> {
-                ApplicableRegionSet regionSet = regionManager.getApplicableRegions(player.getLocation());
-                for (ProtectedRegion region : regionSet) {
-                    if (protectedRegion.equals(region)) return true;
-                }
-                return false;
+                Set<ProtectedRegion> regionSet = FlawMines.get().getWorldGuardInterface().getApplicableRegionsSet(player.getLocation());
+                return regionSet.contains(protectedRegion);
             })
             .collect(Collectors.toList());
     }

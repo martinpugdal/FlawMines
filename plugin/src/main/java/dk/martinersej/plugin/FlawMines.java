@@ -18,7 +18,9 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class FlawMines extends JavaPlugin implements Listener, FlawMinesInterface {
@@ -104,13 +106,22 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
         worldGuard = null;
         worldGuardInterface = null;
 
-        commandInjector.disableAllCommands();
+        if (commandInjector != null) {
+            commandInjector.disableAllCommands();
+        }
         commandInjector = null;
     }
 
     private void setupLegacyCheck() {
         // check version of server
-        String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+        String version;
+        try {
+            // in 1.20.5 its relocated, so we can just handle it in the catch if it fails
+            version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            legacy = false;
+            return;
+        }
         // check if version is 1.12 or lower
         String[] legacyVersions = {"v1_8", "v1_9", "v1_10", "v1_11", "v1_12"};
         for (String legacyVersion : legacyVersions) {
@@ -128,28 +139,57 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
             return;
         }
 
-        // Get WorldEdit version
+        // Get WorldEdit plugin
         worldEdit = (WorldEditPlugin) plugin;
 
-        // Extract major version
-        final String weVersion = worldEdit.getDescription().getVersion().charAt(0) + "";
+        // Parse WorldEdit version
+        String version = worldEdit.getDescription().getVersion(); // Example: "7.3.0"
+        String[] versionParts = version.split("\\.");
+        int majorVersion = Integer.parseInt(versionParts[0]); // "7"
+        int minorVersion = versionParts.length > 1 ? Integer.parseInt(versionParts[1]) : 0; // "3"
 
-        // Load WorldEdit
-        try {
-            Class<?> clazz = Class.forName("dk.martinersej.handlers.WorldEdit" + weVersion);
-            // Check if we have a valid WorldEditInterface implementation
-            if (WorldEditInterface.class.isAssignableFrom(clazz)) { // Make sure it actually implements WorldEditInterface
-                getLogger().info("WorldEdit version " + weVersion + " is supported");
-                worldEditInterface = (WorldEditInterface) clazz.getConstructor(FlawMinesInterface.class).newInstance(this);
-            } else {
-                throw new Exception(); // Throw an exception if it doesn't
+        // Find the nearest floor handler
+        List<Integer> availableHandlers = new ArrayList<>();
+        for (int i = 0; i <= minorVersion; i++) {
+            try {
+                Class.forName("dk.martinersej.handlers.WorldEdit" + majorVersion + "_" + i);
+                availableHandlers.add(i);
+            } catch (ClassNotFoundException e) {
+                // Ignore
             }
-        } catch (Exception ignored) {
-            ignored.printStackTrace();
-            getLogger().severe("WorldEdit version " + weVersion + " is not supported");
+        }
+
+        Class<?> handlerClass = null;
+        if (!availableHandlers.isEmpty()) {
+            // Use the closest floor version
+            int nearestMinor = availableHandlers.get(availableHandlers.size() - 1); // Get the last element
+            try {
+                handlerClass = Class.forName("dk.martinersej.handlers.WorldEdit" + majorVersion + "_" + nearestMinor);
+            } catch (ClassNotFoundException ignored) {
+            }
+        } else {
+            // Fall back to major version if no minors are available
+            try {
+                handlerClass = Class.forName("dk.martinersej.handlers.WorldEdit" + majorVersion);
+            } catch (ClassNotFoundException ignored) {
+            }
+        }
+
+        if (handlerClass != null && WorldEditInterface.class.isAssignableFrom(handlerClass)) {
+            try {
+                worldEditInterface = (WorldEditInterface) handlerClass.getConstructor(FlawMinesInterface.class).newInstance(this);
+                getLogger().info("WorldEdit version " + version + " is supported with handler " + handlerClass.getName());
+            } catch (Exception e) {
+                e.printStackTrace();
+                getLogger().severe("Error loading WorldEdit handler for version " + version);
+                worldEdit = null;
+            }
+        } else {
+            getLogger().severe("WorldEdit version " + version + " is not supported");
             worldEdit = null;
         }
     }
+
 
     private void setupWorldGuard() {
         Plugin plugin = getServer().getPluginManager().getPlugin("WorldGuard");

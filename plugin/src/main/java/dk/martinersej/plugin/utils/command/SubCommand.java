@@ -3,6 +3,7 @@ package dk.martinersej.plugin.utils.command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -37,6 +38,10 @@ public abstract class SubCommand extends Command {
     }
 
     public abstract CommandResult execute(CommandSender sender, String[] args);
+
+    public List<String> onTabComplete(CommandSender sender, String[] args) {
+        return new ArrayList<>();
+    }
 
     public String getUsage(String label) {
         return "/" + label + " " + this.getUsage();

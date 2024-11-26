@@ -22,32 +22,35 @@ public class FillmodeMineCommand extends SubCommand {
 
     @Override
     public CommandResult execute(CommandSender sender, String[] args) {
-        if (args.length < 2) {
-            return Result.wrongUsage(this);
-        }
+        return Result.error(this, "§cNot implemented yet!");
+        //Todo: fix the blockmask for worldedit
 
-        String mineName = args[0];
-
-        // check for mine existence
-        Player player = (Player) sender;
-        MineManager mineManager = FlawMines.get().getMineManager(player.getWorld());
-        Mine mine = mineManager.getMine(mineName);
-        if (mine == null) {
-            return Result.error(this, "§cMine not found!");
-        }
-        boolean fillmode;
-        try {
-            fillmode = Boolean.parseBoolean(args[1]);
-        } catch (NumberFormatException e) {
-            return Result.error(this, "§cInvalid boolean!");
-        }
-
-        mineManager.editMine(mine, mine_ -> mine_.setFillmode(fillmode));
-        return Result.success(this);
+//        if (args.length < 2) {
+//            return Result.wrongUsage(this);
+//        }
+//
+//        String mineName = args[0];
+//
+//        // check for mine existence
+//        Player player = (Player) sender;
+//        MineManager mineManager = FlawMines.get().getMineManager(player.getWorld());
+//        Mine mine = mineManager.getMine(mineName);
+//        if (mine == null) {
+//            return Result.error(this, "§cMine not found!");
+//        }
+//        boolean fillmode;
+//        try {
+//            fillmode = Boolean.parseBoolean(args[1]);
+//        } catch (NumberFormatException e) {
+//            return Result.error(this, "§cInvalid boolean!");
+//        }
+//
+//        mineManager.editMine(mine, mine_ -> mine_.setFillmode(fillmode));
+//        return Result.success(this);
     }
 
     @Override
-    public List<String> tabComplete(CommandSender commandSender, String label, String[] strings) {
+    public List<String> onTabComplete(CommandSender commandSender, String[] strings) {
         if (strings.length < 2) {
             String check = strings.length == 0 ? "" : strings[0];
             return filterStartingWith(check, FlawMines.get().getMineManager(((Player) commandSender).getWorld()).getMineNames());

@@ -11,15 +11,21 @@ public class BaseCommand extends Command {
     public BaseCommand() {
         super("flawmines", new String[]{"fm"}, "Main command for FlawMines", "/flawmines <subcommand>");
 
+        addSubCommand(new SetTeleportMineCommand());
+        addSubCommand(new FillmodeMineCommand());
+
         addSubCommand(new CreateMineCommand());
         addSubCommand(new RemoveMineCommand());
         addSubCommand(new ResetMineCommand());
-        addSubCommand(new SetTeleportMineCommand());
-        addSubCommand(new FillmodeMineCommand());
+        addSubCommand(new ListMinesCommand());
+
         addSubCommand(new AddBlockCommand());
         addSubCommand(new RemoveBlockCommand());
         addSubCommand(new ListBlockCommand());
-        addSubCommand(new EnvironmentCreateCommand());
+
+        addSubCommand(new AddEnvironmentCommand());
+        addSubCommand(new RemoveEnvironmentCommand());
+        addSubCommand(new ListEnvironmentCommand());
     }
 
     @Override

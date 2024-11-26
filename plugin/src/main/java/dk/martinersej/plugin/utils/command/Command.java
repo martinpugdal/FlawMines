@@ -6,6 +6,7 @@ import org.bukkit.command.PluginIdentifiableCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -98,16 +99,16 @@ public abstract class Command extends org.bukkit.command.Command implements Plug
         return !this.playerOnly; // If playerOnly is true, console is not allowed
     }
 
-    // Handling Allowed SubCommands
-    public List<String> getAllowedSubCommands(CommandSender commandSender, String[] strings) {
+    // Handling Allowed SubCommands for TabCompletion
+    public List<String> getAllowedSubCommands(CommandSender commandSender, String[] aliases) {
         ArrayList<String> allowedSubCommands = new ArrayList<>();
         for (SubCommand subCommand : this.getSubCommands()) {
-            if (hasPermission(commandSender, subCommand.getPermissions()) && strings.length == 1) {
-                if (subCommand.containsAlias(strings[0])) {
+            if (hasPermission(commandSender, subCommand.getPermissions()) && aliases.length == 1) {
+                if (subCommand.containsAlias(aliases[0])) {
                     allowedSubCommands.add(subCommand.getAliases().get(0));
                 } else {
                     for (String alias : subCommand.getAliases()) {
-                        if (alias.startsWith(strings[0])) {
+                        if (alias.startsWith(aliases[0])) {
                             allowedSubCommands.add(alias);
                             break;
                         }
@@ -116,6 +117,16 @@ public abstract class Command extends org.bukkit.command.Command implements Plug
             }
         }
         return allowedSubCommands;
+    }
+
+    // Handling Allowed SubCommands for finding the correct SubCommand based on the alias
+    public SubCommand getAllowedSubCommand(CommandSender commandSender, String alias) {
+        for (SubCommand subCommand : this.getSubCommands()) {
+            if (hasPermission(commandSender, subCommand.getPermissions()) && subCommand.containsAlias(alias)) {
+                return subCommand;
+            }
+        }
+        return null;
     }
 
     // Abstract run method for implementation
@@ -168,6 +179,14 @@ public abstract class Command extends org.bukkit.command.Command implements Plug
 
     @Override
     public List<String> tabComplete(CommandSender commandSender, String label, String[] strings) {
+        // check if args[0] is a subcommand, then tabcomplete that subcommand
+        if (strings.length > 0) {
+            SubCommand subCommand = getAllowedSubCommand(commandSender, strings[0]);
+            if (subCommand != null) {
+                return subCommand.onTabComplete(commandSender, Arrays.copyOfRange(strings, 1, strings.length));
+            }
+        }
+
         return defaultTabComplete(commandSender, strings);
     }
 

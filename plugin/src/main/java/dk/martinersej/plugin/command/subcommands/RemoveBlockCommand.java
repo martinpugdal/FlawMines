@@ -49,7 +49,7 @@ public class RemoveBlockCommand extends SubCommand {
         MineManager mineManager = FlawMines.get().getMineManager(player.getWorld());
         Mine mine = mineManager.getMine(mineName);
         if (mine == null) {
-            return Result.error(this, "§cYou are not in a mine!");
+            return Result.error(this, "§cMine not found!");
         }
         MineBlock block = mine.getBlock(materialData);
         if (block == null) {

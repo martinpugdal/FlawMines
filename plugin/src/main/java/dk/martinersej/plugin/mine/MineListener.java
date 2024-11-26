@@ -14,14 +14,19 @@ import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 
+import java.util.Set;
+
 public class MineListener implements Listener {
 
     void checkEvent(BlockEvent event) {
         World world = event.getBlock().getWorld();
         MineManager mineManager = FlawMines.get().getMineManager(world);
 
-        ApplicableRegionSet applicableRegions = FlawMines.get().getWorldGuardInterface().getRegionManager(world).getApplicableRegions(event.getBlock().getLocation());
-        ProtectedRegion region = applicableRegions.getRegions().stream().findFirst().orElse(null);
+        Set<ProtectedRegion> applicableRegions = FlawMines.get().getWorldGuardInterface().getApplicableRegionsSet(event.getBlock().getLocation());
+        ProtectedRegion region = applicableRegions.stream().findFirst().orElse(null);
+        if (region == null) {
+            return;
+        }
         Mine mine = mineManager.getMine(region);
 
         if (mine != null) {

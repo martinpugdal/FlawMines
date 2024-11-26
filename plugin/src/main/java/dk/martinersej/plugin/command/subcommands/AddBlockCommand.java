@@ -12,10 +12,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.material.MaterialData;
 
+import java.util.List;
+
 public class AddBlockCommand extends SubCommand {
 
     public AddBlockCommand() {
-        super(new String[] {"addblock", "ab"}, "Add a block to the mine", "addblock <mine> <block> <percentage>", "flawmines.addblock");
+        super(new String[] {"addblock", "ab"}, "Add a block to the mine", "addblock <mine> <block> <weight>", "flawmines.addblock");
 
         setPlayerOnly(true);
     }
@@ -46,7 +48,7 @@ public class AddBlockCommand extends SubCommand {
         try {
             percentage = Float.parseFloat(args[2]);
         } catch (NumberFormatException e) {
-            return Result.error(this, "§cInvalid percentage!");
+            return Result.error(this, "§cInvalid weight!");
         }
 
         // check for mine existence
@@ -59,19 +61,38 @@ public class AddBlockCommand extends SubCommand {
 
         // check for percentage
         if (percentage < 0) {
-            return Result.error(this, "§cPercentage must be a positive number!");
+            return Result.error(this, "§cWeight must be a positive number!");
         }
 
         // add block
         MineBlock mineBlock = mineManager.addBlock(mine, new MineBlock(materialData, percentage));
-        // use the mineblock to tell the output what we have as percentage
+        // use the mineblock to tell the output what we have as weight
 
         if (mineBlock != null) {
-            sender.sendMessage("§aBlock was found and updated the percentage to " + mineBlock.getPercentage());
+            sender.sendMessage("§aBlock was found and updated the weight to " + mineBlock.getWeight());
         } else {
-            sender.sendMessage("§aBlock was added with a percentage of " + percentage);
+            sender.sendMessage("§aBlock was added with a weight of " + percentage);
         }
 
         return Result.success(this);
+    }
+
+    private static final String[] materials;
+    static {
+        materials = new String[Material.values().length];
+        for (int i = 0; i < Material.values().length; i++) {
+            materials[i] = Material.values()[i].name();
+        }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender commandSender, String[] strings) {
+        if (strings.length == 1) {
+            return FlawMines.get().getMineManager(((Player) commandSender).getWorld()).getMineNames();
+        } else if (strings.length == 2) {
+            return filterStartingWith(strings[1], materials);
+        }
+
+        return super.onTabComplete(commandSender, strings);
     }
 }

@@ -11,15 +11,15 @@ public class MineBlock {
 
     private int id = -1;
     private MaterialData materialData;
-    private float percentage;
+    private float weight;
 
-    public MineBlock(Material material, float percentage) {
-        this(new MaterialData(material), percentage);
+    public MineBlock(Material material, float weight) {
+        this(new MaterialData(material), weight);
     }
 
-    public MineBlock(MaterialData materialData, float percentage) {
+    public MineBlock(MaterialData materialData, float weight) {
         this.materialData = materialData;
-        this.percentage = percentage;
+        this.weight = weight;
     }
 
     public static MineBlock deserialize(String data) {
@@ -33,13 +33,9 @@ public class MineBlock {
 
         Material material = Material.getMaterial(map.get("block"));
         MaterialData materialData = FlawMines.isLegacy() ? material.getNewData(Byte.parseByte(map.get("data"))): new MaterialData(material);
-        float percentage = Float.parseFloat(map.get("percentage"));
+        float weight = Float.parseFloat(map.get("weight"));
 
-        return new MineBlock(materialData, percentage);
-    }
-
-    public MaterialData getBlockData() {
-        return materialData.clone();
+        return new MineBlock(materialData, weight);
     }
 
     public String serialize() {
@@ -48,18 +44,22 @@ public class MineBlock {
         if (FlawMines.isLegacy()) {
             data.put("data", String.valueOf(materialData.getData()));
         }
-        data.put("percentage", String.valueOf(getPercentage()));
+        data.put("weight", String.valueOf(getWeight()));
 
         // Serialize the data map
         return data.entrySet().stream().map(entry -> entry.getKey() + ":" + entry.getValue()).reduce((a, b) -> a + "," + b).orElse("");
     }
 
-    public float getPercentage() {
-        return percentage;
+    public MaterialData getBlockData() {
+        return materialData.clone();
     }
 
-    public void setPercentage(float percentage) {
-        this.percentage = percentage;
+    public float getWeight() {
+        return weight;
+    }
+
+    public void setWeight(float weight) {
+        this.weight = weight;
     }
 
     public int getId() {

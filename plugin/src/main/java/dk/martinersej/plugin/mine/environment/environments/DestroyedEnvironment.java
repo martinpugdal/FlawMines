@@ -2,6 +2,7 @@ package dk.martinersej.plugin.mine.environment.environments;
 
 import dk.martinersej.plugin.mine.Mine;
 import dk.martinersej.plugin.mine.environment.Environment;
+import dk.martinersej.plugin.mine.environment.EnvironmentType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,6 +60,11 @@ public class DestroyedEnvironment extends Environment {
             .map(entry -> entry.getKey() + ":" + entry.getValue())
             .reduce((a, b) -> a + "," + b)
             .orElse("");
+    }
+
+    @Override
+    public EnvironmentType getType() {
+        return EnvironmentType.DESTROYED;
     }
 
     public static DestroyedEnvironment deserialize(Mine mine, String data) {

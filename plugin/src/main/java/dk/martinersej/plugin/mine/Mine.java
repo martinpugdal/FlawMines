@@ -3,12 +3,12 @@ package dk.martinersej.plugin.mine;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.EditSessionFactory;
 import com.sk89q.worldedit.MaxChangedBlocksException;
-import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.function.mask.BlockMask;
-import com.sk89q.worldedit.patterns.BlockChance;
-import com.sk89q.worldedit.patterns.RandomFillPattern;
+import com.sk89q.worldedit.function.pattern.AbstractPattern;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
+import dk.martinersej.api.worldedit.RandomPattern;
+import dk.martinersej.api.worldedit.WorldEditInterface;
 import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.events.MineResetEvent;
 import dk.martinersej.plugin.mine.environment.Environment;
@@ -26,11 +26,11 @@ import java.util.List;
 public class Mine {
 
     private final String name;
-    private boolean fillmode;
-    private BlockVector teleportLocation;
     private final List<MineBlock> blocks = new ArrayList<>();
     private final List<Environment> environments = new ArrayList<>();
     private final MineRegion mineRegion;
+    private boolean fillmode;
+    private BlockVector teleportLocation;
 
     public Mine(String name, ProtectedRegion region, World world, boolean fillmode, BlockVector teleportLocation) {
         this.name = name;
@@ -40,11 +40,11 @@ public class Mine {
     }
 
     public Mine(String name, ProtectedRegion region, World world, boolean fillmode) {
-        this(name, region, world, fillmode, new BlockVector(region.getMaximumPoint().getBlockX(), region.getMaximumPoint().getBlockY(), region.getMaximumPoint().getBlockZ()));
+        this(name, region, world, fillmode, new BlockVector(FlawMines.get().getWorldGuardInterface().getMinimumPoint(region).getBlockX(), FlawMines.get().getWorldGuardInterface().getMinimumPoint(region).getBlockY(), FlawMines.get().getWorldGuardInterface().getMinimumPoint(region).getBlockZ()));
     }
 
     public Mine(String name, ProtectedRegion region, World world) {
-        this(name, region, world, false, new BlockVector(region.getMaximumPoint().getBlockX(), region.getMaximumPoint().getBlockY(), region.getMaximumPoint().getBlockZ()));
+        this(name, region, world, false, new BlockVector(FlawMines.get().getWorldGuardInterface().getMinimumPoint(region).getBlockX(), FlawMines.get().getWorldGuardInterface().getMinimumPoint(region).getBlockY(), FlawMines.get().getWorldGuardInterface().getMinimumPoint(region).getBlockZ()));
     }
 
     public List<Environment> getEnvironments() {
@@ -65,59 +65,53 @@ public class Mine {
     }
 
     public void reset() {
-        //TODO: this should refactor because some methods is not available then we upgrade worldedit version, f.e.
-        // RandomPattern is the new class name for RandomFillPattern.
-        // Same for BlockChance.
-
-        Runnable runnable = () -> {
-            EditSessionFactory editSession = FlawMines.get().getWorldEdit().getWorldEdit().getEditSessionFactory();
-            EditSession session = editSession.getEditSession(new BukkitWorld(getWorld()), getRegion().getVolume());
-            // should work, unless we could change it to -1 for a hard fix. I hope it's not necessary.
-
-            try {
-                // get players inside the mine and teleport them to the teleport location
-                List<Player> players = mineRegion.playersWithinRegion();
-                Location teleportLocation = getTeleportLocationAsLocation();
-                for (Player player : players) {
-                    player.teleport(teleportLocation);
-                }
-
-                // add the blocks to the pattern
-                List<BlockChance> blockChances = new ArrayList<>();
-                if (blocks.isEmpty())
-                    blockChances.add(new BlockChance(new BaseBlock(Material.AIR.getId()), 100));
-                blocks.forEach((block -> {
-                    BaseBlock baseBlock = new BaseBlock(block.getBlockData().getItemType().getId(), block.getBlockData().getData());
-                    blockChances.add(new BlockChance(baseBlock, block.getPercentage()));
-                }));
-
-                // create the pattern
-                RandomFillPattern pattern = new RandomFillPattern(blockChances);
-
-                if (fillmode) {
-                    // Create a mask with air blocks, so we can replace air blocks with the pattern.
-                    BlockMask mask = new BlockMask(session, new BaseBlock(Material.AIR.getId()));
-                    session.replaceBlocks(mineRegion.getRegion(), mask, pattern);
-                } else {
-                    session.setBlocks(mineRegion.getRegion(), pattern);
-                }
-            } catch (MaxChangedBlocksException e) {
-                e.printStackTrace();
-            } finally {
-                session.flushQueue();
-                resetFinished();
+        EditSessionFactory editSession = FlawMines.get().getWorldEdit().getWorldEdit().getEditSessionFactory();
+        // should work, unless we could change it to -1 for a hard fix. I hope it's not necessary.
+        EditSession session = editSession.getEditSession(new BukkitWorld(getWorld()), getRegion().getVolume());
+        try {
+            // get players inside the mine and teleport them to the teleport location
+            List<Player> players = mineRegion.playersWithinRegion();
+            Location teleportLocation = getTeleportLocationAsLocation();
+            for (Player player : players) {
+                Bukkit.getScheduler().runTask(FlawMines.get(), () -> player.teleport(teleportLocation));
             }
-        };
 
-        if (!FlawMines.isLegacy()) {
-            FlawMines.get().getServer().getScheduler().runTaskAsynchronously(FlawMines.get(), runnable);
-        } else {
-            runnable.run();
+            WorldEditInterface worldEditInterface = FlawMines.get().getWorldEditInterface();
+            RandomPattern randomPattern = new RandomPattern();
+
+            blocks.forEach((block -> {
+                AbstractPattern blockPattern = worldEditInterface.createBlockPattern(block.getBlockData());
+                randomPattern.add(blockPattern, block.getWeight());
+            }));
+
+            AbstractPattern airPattern = worldEditInterface.createBlockPattern(new MaterialData(Material.AIR));
+            if (blocks.isEmpty()) {
+                randomPattern.add(airPattern, 100);
+            }
+
+            if (fillmode) {
+                //TODO: Implement BlockMask in WorldEditInterface
+//                BlockMask mask = new BlockMask(session, airPattern.apply(null));
+                BlockMask mask = null;
+                session.replaceBlocks(mineRegion.getRegion(), mask, randomPattern);
+            } else {
+                worldEditInterface.setBlocks(session, mineRegion.getRegion(), randomPattern);
+            }
+        } catch (MaxChangedBlocksException e) {
+            e.printStackTrace();
+        } finally {
+            FlawMines.get().getWorldEditInterface().closeEditSession(session);
+            resetFinished();
         }
     }
 
     public void addEnvironment(Environment environment) {
         environments.add(environment);
+    }
+
+    public void removeEnvironment(Environment environment) {
+        environments.remove(environment);
+        environment.kill();
     }
 
     public long getTotalBlocks() {
@@ -129,7 +123,7 @@ public class Mine {
             environment.reset();
         }
 
-        Bukkit.getPluginManager().callEvent(new MineResetEvent(this));
+        Bukkit.getScheduler().runTask(FlawMines.get(), () -> Bukkit.getPluginManager().callEvent(new MineResetEvent(this)));
     }
 
     public void addBlock(MineBlock block) {
@@ -145,13 +139,8 @@ public class Mine {
         return null;
     }
 
-    public void updateBlock(MineBlock block) {
-        for (int i = 0; i < blocks.size(); i++) {
-            if (blocks.get(i).getId() == block.getId()) {
-                blocks.set(i, block);
-                return;
-            }
-        }
+    public void clearBlocks() {
+        blocks.clear();
     }
 
     public void removeBlock(MineBlock block) {
@@ -166,12 +155,12 @@ public class Mine {
         return teleportLocation;
     }
 
-    public Location getTeleportLocationAsLocation() {
-        return teleportLocation.toLocation(getWorld());
-    }
-
     public void setTeleportLocation(BlockVector teleportLocation) {
         this.teleportLocation = teleportLocation;
+    }
+
+    public Location getTeleportLocationAsLocation() {
+        return teleportLocation.toLocation(getWorld());
     }
 
     public boolean isFillmode() {
@@ -180,5 +169,31 @@ public class Mine {
 
     public void setFillmode(boolean fillmode) {
         this.fillmode = fillmode;
+    }
+
+    public Environment getEnvironment(int id) {
+        for (Environment environment : environments) {
+            if (environment.getId() == id) {
+                return environment;
+            }
+        }
+        return null;
+    }
+
+    // example: getEnvironments(ScheduledEnvironment.class) will return all ScheduledEnvironments
+    public List<Environment> getEnvironments(Class<? extends Environment> clazz) {
+        List<Environment> result = new ArrayList<>();
+        for (Environment environment : environments) {
+            if (clazz.isInstance(environment)) {
+                result.add(environment);
+            }
+        }
+        return result;
+    }
+
+    public void remove() {
+        for (Environment environment : environments) {
+            environment.kill();
+        }
     }
 }

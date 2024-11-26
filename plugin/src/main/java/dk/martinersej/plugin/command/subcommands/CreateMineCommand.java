@@ -1,7 +1,5 @@
 package dk.martinersej.plugin.command.subcommands;
 
-import com.sk89q.worldedit.BlockVector;
-import com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dk.martinersej.api.worldedit.WorldEditSelection;
 import dk.martinersej.plugin.FlawMines;
@@ -52,12 +50,16 @@ public class CreateMineCommand extends SubCommand {
             if (playerSelection == null) {
                 return Result.error(this, "§cYou need to select a region!");
             }
+
+            // remove region if it already exists
+            if (FlawMines.get().getWorldGuardInterface().getRegionManager(player.getWorld()).hasRegion(args[0])) {
+                FlawMines.get().getWorldGuardInterface().getRegionManager(player.getWorld()).removeRegion(args[0]);
+            }
+
+            // create region
             Vector min = playerSelection.getMinimumLocation().toVector();
             Vector max = playerSelection.getMaximumLocation().toVector();
-            BlockVector blockVectorMin = new BlockVector(min.getBlockX(), min.getBlockY(), min.getBlockZ());
-            BlockVector blockVectorMax = new BlockVector(max.getBlockX(), max.getBlockY(), max.getBlockZ());
-            region = new ProtectedCuboidRegion(args[0], blockVectorMin, blockVectorMax);
-            // add a region to worldguard, so its saved
+            region = FlawMines.get().getWorldGuardInterface().createProtectedCuboidRegion(args[0], min, max);
             FlawMines.get().getWorldGuardInterface().getRegionManager(player.getWorld()).addRegion(region);
         }
         Mine mine = mineManager.createMine(region, args[0]);
@@ -66,7 +68,6 @@ public class CreateMineCommand extends SubCommand {
         }
 
         sender.sendMessage("§aMine created!");
-
         return Result.success(this);
     }
 }

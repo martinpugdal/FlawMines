@@ -21,7 +21,8 @@
         <module>api</module>
 
         <module>worldedit-6</module>
-        <module>worldedit-7</module>
+        <module>worldedit-7-legacy</module>
+        <module>worldedit-7-modern</module>
         <module>worldguard-6</module>
         <module>worldguard-7</module>
 

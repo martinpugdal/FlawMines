@@ -34,10 +34,14 @@ public class ListBlockCommand extends SubCommand {
             return Result.error(this, "§cMine not found!");
         }
 
+        if (mine.getBlocks().isEmpty()) {
+            return Result.error(this, "§cThere are no blocks in this mine!");
+        }
+
         // list blocks
         StringBuilder stringBuilder = new StringBuilder();
         for (MineBlock mineBlock : mine.getBlocks()) {
-            stringBuilder.append(mineBlock.getBlockData().getItemType().name()).append(": ").append(mineBlock.getPercentage()).append("\n");
+            stringBuilder.append(mineBlock.getBlockData().getItemType().name()).append(": ").append(mineBlock.getWeight()).append("\n");
         }
         sender.sendMessage(stringBuilder.toString());
 

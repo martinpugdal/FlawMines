@@ -1,6 +1,7 @@
 package dk.martinersej.plugin;
 
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
+import dk.martinersej.api.worldguard.WorldGuardInterface;
 import dk.martinersej.plugin.mine.Mine;
 import dk.martinersej.plugin.mine.MineBlock;
 import dk.martinersej.plugin.mine.environment.Environment;
@@ -14,7 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class MineManager {
 
@@ -64,12 +64,15 @@ public class MineManager {
             plugin.getLogger().warning("Mine already exists for region: " + region.getId());
             return null;
         }
+        if (mineLookup != null) { // mine exists but region is different
+            mineLookup.remove();
+        }
+
         // continue creating mine
         Mine mine = new Mine(name, region, world);
         mines.put(region, mine);
-        mineController.createMine(mine.getName(), mine.getWorld(), region.getId());
-
-        plugin.getLogger().info("Mine created: " + name + " with region: " + region.getId());
+        WorldGuardInterface worldGuardInterface = plugin.getWorldGuardInterface();
+        mineController.createMine(mine.getName(), mine.getWorld(), region.getId(), worldGuardInterface.getMaximumPoint(region));
         return mine;
     }
 
@@ -77,10 +80,10 @@ public class MineManager {
         if (mine == null) {
             return false;
         }
-
-        mineController.deleteMine(mine.getName(), mine.getRegion().getId());
         mines.remove(mine.getRegion().getProtectedRegion());
-        plugin.getLogger().info("Mine deleted: " + mine.getName() + " with region: " + mine.getRegion().getId());
+        mine.remove();
+        plugin.getWorldGuardInterface().getRegionManager(world).removeRegion(mine.getRegion().getId());
+        mineController.deleteMine(mine.getName(), mine.getRegion().getId());
         return true;
     }
 
@@ -88,13 +91,24 @@ public class MineManager {
         // if a block already exists in mine, get the object and update it
         MineBlock existingBlock = mine.getBlock(block.getBlockData());
         if (existingBlock != null) {
-            existingBlock.setPercentage(block.getPercentage());
+            existingBlock.setWeight(block.getWeight());
             mineController.updateBlock(existingBlock);
             return existingBlock;
         }
         mine.addBlock(block);
         mineController.addBlock(mine.getName(), block);
         return null;
+    }
+
+    public void setBlocks(Mine mine, List<MineBlock> blocks) {
+        for (MineBlock block : mine.getBlocks()) {
+            mineController.removeBlock(block);
+        }
+        mine.clearBlocks();
+        for (MineBlock block : blocks) {
+            mine.addBlock(block);
+            mineController.addBlock(mine.getName(), block);
+        }
     }
 
     public void removeBlock(Mine mine, MineBlock block) {
@@ -107,27 +121,36 @@ public class MineManager {
         mineController.removeBlock(block);
     }
 
-    public Environment createEnvironment(Mine mine, EnvironmentType environmentType, Object[] values) {
+    public Environment addEnvironment(Mine mine, EnvironmentType environmentType, Object[] values) {
+        Environment environment = null;
         switch (environmentType) {
             case DESTROYED: {
                 try {
-                    float ratio = Float.parseFloat((String) values[0]);
-                    return new DestroyedEnvironment(mine, ratio);
+                    float ratio = Float.parseFloat(String.valueOf(values[0]));
+                    environment = new DestroyedEnvironment(mine, ratio);
                 } catch (NumberFormatException e) {
                     return null;
                 }
+                break;
             }
             case SCHEDULED: {
                 try {
-                    int interval = Integer.parseInt((String) values[0]);
-                    return new ScheduledEnvironment(mine, interval);
+                    int interval = Integer.parseInt(String.valueOf(values[0]));
+                    environment = new ScheduledEnvironment(mine, interval);
                 } catch (NumberFormatException e) {
                     return null;
                 }
+                break;
             }
-            default:
-                return null;
         }
+        mine.addEnvironment(environment);
+        mineController.addEnvironment(mine.getName(), environment);
+        return environment;
+    }
+
+    public void removeEnvironment(Mine mine, Environment environment) {
+        mine.removeEnvironment(environment);
+        mineController.removeEnvironment(environment);
     }
 
     public void editMine(Mine mine, Consumer<Mine> function) {
