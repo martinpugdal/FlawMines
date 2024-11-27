@@ -7,6 +7,7 @@ import dk.martinersej.api.worldedit.WorldEditInterface;
 import dk.martinersej.api.worldguard.WorldGuardInterface;
 import dk.martinersej.plugin.command.BaseCommand;
 import dk.martinersej.plugin.mine.MineListener;
+import dk.martinersej.plugin.placeholderapi.FlawMinesPlaceholderExpansion;
 import dk.martinersej.plugin.utils.command.CommandInjector;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -60,6 +61,8 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
         setupWorldEdit();
         // setup WorldGuard
         setupWorldGuard();
+        // setup PlaceholderAPI
+        setupPlaceholderAPI();
 
         // check if WorldEdit and WorldGuard is enabled
         if (worldEdit == null || worldGuard == null) {
@@ -129,6 +132,12 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
                 legacy = true;
                 break;
             }
+        }
+    }
+
+    private void setupPlaceholderAPI() {
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new FlawMinesPlaceholderExpansion(this).register();
         }
     }
 
