@@ -6,4 +6,5 @@ depend:
   - WorldEdit
   - WorldGuard
 softdepend:
+  - MineResetLite
   - PlaceholderAPI
