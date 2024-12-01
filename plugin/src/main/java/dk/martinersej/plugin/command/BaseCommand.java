@@ -11,6 +11,7 @@ import dk.martinersej.plugin.command.subcommands.mine.ListMinesCommand;
 import dk.martinersej.plugin.command.subcommands.mine.RemoveMineCommand;
 import dk.martinersej.plugin.command.subcommands.mine.ResetMineCommand;
 import dk.martinersej.plugin.command.subcommands.utility.FillmodeMineCommand;
+import dk.martinersej.plugin.command.subcommands.utility.MigrateCommand;
 import dk.martinersej.plugin.command.subcommands.utility.SetTeleportMineCommand;
 import dk.martinersej.plugin.utils.command.Command;
 import dk.martinersej.plugin.utils.command.CommandResult;
@@ -24,6 +25,7 @@ public class BaseCommand extends Command {
 
         addSubCommand(new SetTeleportMineCommand());
         addSubCommand(new FillmodeMineCommand());
+        addSubCommand(new MigrateCommand());
 
         addSubCommand(new CreateMineCommand());
         addSubCommand(new RemoveMineCommand());

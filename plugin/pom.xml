@@ -121,5 +121,14 @@
       <version>2.11.6</version>
       <scope>provided</scope>
     </dependency>
+
+    <!-- migration -->
+    <dependency>
+      <groupId>com.koletar.jj</groupId>
+      <artifactId>mineresetlite</artifactId>
+      <scope>system</scope>
+      <version>5.4.1</version>
+      <systemPath>${project.basedir}/../dependencies/MineResetLite-5.4.1.jar</systemPath>
+    </dependency>
   </dependencies>
 </project>
