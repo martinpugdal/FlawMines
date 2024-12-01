@@ -30,7 +30,7 @@ public class MigrateCommand extends SubCommand {
     private final List<Plugin> supportedPlugins = new ArrayList<>();
 
     public MigrateCommand() {
-        super(new String[] {"migrate", "import"}, "Import a mine from other plugins", "migrate <plugin> <mine> [<rename>]", "flawmines.migrate");
+        super(new String[] {"migrate", "import"}, "Import a mine from other plugins", "migrate <plugin> <mine>", "flawmines.migrate");
 
         setPlayerOnly(true);
 
