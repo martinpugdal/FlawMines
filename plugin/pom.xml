@@ -127,8 +127,8 @@
       <groupId>com.koletar.jj</groupId>
       <artifactId>mineresetlite</artifactId>
       <scope>system</scope>
-      <version>0.4.8</version>
-      <systemPath>${project.basedir}/../dependencies/MineResetLite.jar</systemPath>
+      <version>5.4.1</version>
+      <systemPath>${project.basedir}/../dependencies/MineResetLite-5.4.1.jar</systemPath>
     </dependency>
   </dependencies>
 </project>
