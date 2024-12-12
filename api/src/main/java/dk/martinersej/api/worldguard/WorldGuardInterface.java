@@ -24,6 +24,8 @@ public abstract class WorldGuardInterface {
 
     public abstract Set<ProtectedRegion> getApplicableRegionsSet(Location location);
 
+    public abstract boolean regionContains(ProtectedRegion region, Location location);
+
     public abstract boolean canBuild(Player player, Location location);
 
     public abstract org.bukkit.util.Vector getMinimumPoint(ProtectedRegion region);

@@ -9,6 +9,7 @@ import dk.martinersej.plugin.mine.environment.Environment;
 import dk.martinersej.plugin.mine.environment.EnvironmentType;
 import dk.martinersej.plugin.mine.environment.environments.DestroyedEnvironment;
 import dk.martinersej.plugin.mine.environment.environments.ScheduledEnvironment;
+import net.royawesome.jlibnoise.module.combiner.Min;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
@@ -151,6 +152,10 @@ public class MineManager {
 
     public void editMine(Mine mine, Consumer<Mine> function) {
         function.andThen((v) -> mineController.saveOnlyMine(mine)).accept(mine);
+    }
+
+    public List<Mine> getMines() {
+        return new ArrayList<>(mines.values());
     }
 
     public List<String> getMineNames() {

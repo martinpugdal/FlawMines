@@ -27,13 +27,18 @@ public class WorldGuard6 extends WorldGuardInterface {
     @Override
     public Set<ProtectedRegion> getApplicableRegionsSet(Location location) {
         Set<ProtectedRegion> result = new HashSet<>();
-        com.sk89q.worldedit.Vector vector = new com.sk89q.worldedit.Vector(location.getX(), location.getY(), location.getZ());
         for(ProtectedRegion region : getRegionManager(location.getWorld()).getRegions().values()) {
-            if(region.contains(vector)) {
+            if(regionContains(region, location)) {
                 result.add(region);
             }
         }
         return result;
+    }
+
+    @Override
+    public boolean regionContains(ProtectedRegion region, Location location) {
+        BlockVector vector = new BlockVector(location.getX(), location.getY(), location.getZ());
+        return region.contains(vector);
     }
 
     @Override
