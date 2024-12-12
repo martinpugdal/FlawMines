@@ -2,12 +2,14 @@ package dk.martinersej.plugin;
 
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dk.martinersej.api.worldguard.WorldGuardInterface;
+import dk.martinersej.plugin.events.MinesWorldLoadEvent;
 import dk.martinersej.plugin.mine.Mine;
 import dk.martinersej.plugin.mine.MineBlock;
 import dk.martinersej.plugin.mine.environment.Environment;
 import dk.martinersej.plugin.mine.environment.EnvironmentType;
 import dk.martinersej.plugin.mine.environment.environments.DestroyedEnvironment;
 import dk.martinersej.plugin.mine.environment.environments.ScheduledEnvironment;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 import java.util.ArrayList;
@@ -34,6 +36,11 @@ public class MineManager {
         mines.putAll(mineController.loadMines(world));
         for (Mine mine : mines.values()) {
             plugin.getLogger().info("Loaded mine: " + mine.getName());
+        }
+
+        if (!mines.isEmpty()) {
+            plugin.getLogger().info("Loaded " + mines.size() + " mines from world: " + world.getName());
+            Bukkit.getPluginManager().callEvent(new MinesWorldLoadEvent(new ArrayList<>(mines.values()), world));
         }
     }
 
@@ -96,14 +103,8 @@ public class MineManager {
     }
 
     public void setBlocks(Mine mine, List<MineBlock> blocks) {
-        for (MineBlock block : mine.getBlocks()) {
-            mineController.removeBlock(block);
-        }
-        mine.clearBlocks();
-        for (MineBlock block : blocks) {
-            mine.addBlock(block);
-            mineController.addBlock(mine.getName(), block);
-        }
+        mine.setBlocks(blocks);
+        mineController.setBlocks(mine.getName(), blocks);
     }
 
     public void removeBlock(Mine mine, MineBlock block) {

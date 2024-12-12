@@ -111,7 +111,7 @@ public class Mine {
         environment.kill();
     }
 
-    public long getTotalBlocks() {
+    public int getTotalBlocks() {
         return mineRegion.getVolume();
     }
 
@@ -134,6 +134,11 @@ public class Mine {
             }
         }
         return null;
+    }
+
+    public void setBlocks(List<MineBlock> blocks) {
+        this.blocks.clear();
+        this.blocks.addAll(blocks);
     }
 
     public void clearBlocks() {

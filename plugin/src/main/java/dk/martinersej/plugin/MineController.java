@@ -315,6 +315,30 @@ public class MineController {
         });
     }
 
+    public void setBlocks(String name, List<MineBlock> blocks) {
+        sync((connection) -> {
+            try {
+                PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM mineBlocks WHERE mineId = ?"
+                );
+                statement.setString(1, name);
+                statement.executeUpdate();
+
+                PreparedStatement insertStatement = connection.prepareStatement(
+                    "INSERT INTO mineBlocks (mineId, data) VALUES (?, ?)"
+                );
+                for (MineBlock block : blocks) {
+                    insertStatement.setString(1, name);
+                    insertStatement.setString(2, block.serialize());
+                    insertStatement.addBatch();
+                }
+                insertStatement.executeBatch();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
     public void updateBlock(MineBlock block) {
         sync((connection) -> {
             try {
