@@ -42,9 +42,13 @@ public class ListEnvironmentCommand extends SubCommand {
         for (Environment environment : mine.getEnvironments()) {
             String name = environment.getClass().getSimpleName();
             name = name.substring(0, 1).toUpperCase() + name.substring(1).toLowerCase();
+
+            // convert it to 2 decimal places
+            double progress = Math.round(environment.getProgress() * 100.0) / 100.0;
+
             stringBuilder.append(name).
                 append(" (").append(environment.getId()).append(")")
-                .append(": ").append(environment.getProgress()).append("%\n");
+                .append(": ").append(progress).append("%\n");
         }
         sender.sendMessage(stringBuilder.toString());
 

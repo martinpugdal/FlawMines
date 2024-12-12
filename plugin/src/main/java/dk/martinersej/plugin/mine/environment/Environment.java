@@ -11,16 +11,13 @@ public abstract class Environment {
 
     private int id; // its for database
     protected Mine mine;
-    protected boolean finished = false;
 
     public Environment(int id, Mine mine) {
         this.id = id;
         this.mine = mine;
     }
 
-    public void reset() {
-        finished = false;
-    }
+    public abstract void reset();
 
     // progress in 0-100 (percentage)
     public abstract double getProgress();
@@ -63,7 +60,5 @@ public abstract class Environment {
         this.id = id;
     }
 
-    public void kill() {
-        finished = true;
-    }
+    public abstract void kill();
 }

@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
 public class RemoveEnvironmentCommand extends SubCommand {
 
     public RemoveEnvironmentCommand() {
-        super(new String[] {"envremove", "eremove"}, "Remove environment from a mine",  "envremove <mine> <id>", "flawmines.env.remove");
+        super(new String[] {"envremove", "removeenv"}, "Remove environment from a mine",  "removeenv <mine> <id>", "flawmines.env.remove");
         setPlayerOnly(true);
     }
 
@@ -44,7 +44,7 @@ public class RemoveEnvironmentCommand extends SubCommand {
         }
 
         mineManager.removeEnvironment(mine, environment);
-        sender.sendMessage("§aBlock removed!");
+        sender.sendMessage("§aEnvironment removed!");
 
         return Result.success(this);
     }

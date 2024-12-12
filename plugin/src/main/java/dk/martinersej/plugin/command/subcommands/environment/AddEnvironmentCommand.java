@@ -14,7 +14,7 @@ import org.bukkit.entity.Player;
 public class AddEnvironmentCommand extends SubCommand {
 
     public AddEnvironmentCommand() {
-        super(new String[] {"addenv", "envadd"}, "Create a new environment in a mine",  "addenv <mine> <type> <value(s)>", "flawmines.env.create");
+        super(new String[] {"envadd", "addenv"}, "Create a new environment in a mine",  "addenv <mine> <type> <value(s)>", "flawmines.env.create");
         setPlayerOnly(true);
     }
 

@@ -36,8 +36,8 @@ public class ScheduledEnvironment extends Environment {
 
     @Override
     public double getProgress() {
-        int timeSinceLastRun = (int) (System.currentTimeMillis() - lastRun) / 1000; // in seconds
-        return Math.min(timeSinceLastRun / intervalSeconds, 0) * 100; // Return the progress as percentage
+        int timeLeft = getTimeLeft();
+        return timeLeft <= 0 ? 100 : 100 - (timeLeft * 100.0 / intervalSeconds);
     }
 
     public int getTimeLeft() {
@@ -47,7 +47,6 @@ public class ScheduledEnvironment extends Environment {
 
     @Override
     public void reset() {
-        super.reset();
         // Reset the environment
         Bukkit.getServer().getScheduler().cancelTask(taskId);
         scheduleResetTask();
@@ -93,7 +92,6 @@ public class ScheduledEnvironment extends Environment {
 
     @Override
     public void kill() {
-        super.kill();
         Bukkit.getServer().getScheduler().cancelTask(taskId);
     }
 }

@@ -11,7 +11,7 @@ public class DestroyedEnvironment extends Environment {
 
     private final float ratio; // The ratio of blocks that should be destroyed (defined by %, 0-100, where we convert it to 0-1)
     private final int blocksNeeded; // The amount of blocks needed to be destroyed
-    private int blocksDestroyed = 0; // The amount of blocks destroyed
+    private int blocksDestroyed; // The amount of blocks destroyed
 
     // this is used for creating the environment, and the id will be placed by the database then queried
     public DestroyedEnvironment(Mine mine, float ratio) {
@@ -19,32 +19,36 @@ public class DestroyedEnvironment extends Environment {
     }
 
     public DestroyedEnvironment(int id, Mine mine, float ratio) {
+        this(id, mine, ratio, 0);
+    }
+
+    public DestroyedEnvironment(int id, Mine mine, float ratio, int blocksDestroyed) {
         super(id, mine);
 
         if (ratio < 0 || ratio > 100) {
             throw new IllegalArgumentException("The ratio must be between 0 and 100");
         }
         this.ratio = ratio / 100f; // Convert the ratio to 0-1
-        this.blocksNeeded = Math.round(mine.getTotalBlocks() * ratio);
+        this.blocksNeeded = (int) (mine.getTotalBlocks() * ratio); // Calculate the amount of blocks needed to be destroyed
+        this.blocksDestroyed = blocksDestroyed;
     }
 
     @Override
     public void reset() {
-        super.reset();
         // Reset the environment
         blocksDestroyed = 0;
     }
 
     @Override
     public double getProgress() {
-        double progress = (double) blocksDestroyed / blocksNeeded; // Calculate the progress
-        return Math.min(progress, 0) * 100; // Return the progress as percentage
+        int blocksLeft = blocksNeeded - blocksDestroyed; // Calculate the blocks left
+        return blocksLeft <= 0 ? 100 : 100 - (blocksLeft * 100.0 / blocksNeeded); // Calculate the progress
     }
 
     public void increaseBlocksDestroyed() {
         blocksDestroyed++;
-        if (blocksDestroyed >= mine.getRegion().getVolume()) {
-            finished = true;
+        if (blocksDestroyed >= blocksNeeded) {
+            mine.reset();
         }
     }
 
@@ -53,7 +57,7 @@ public class DestroyedEnvironment extends Environment {
         // just the extra data we need to serialize
         Map<String, String> data = new HashMap<>();
         data.put("ratio", String.valueOf(ratio));
-        data.put("blocksNeeded", String.valueOf(blocksNeeded));
+        data.put("blocksDestroyed", String.valueOf(blocksDestroyed));
 
         // Serialize the data map
         return data.entrySet().stream()
@@ -67,6 +71,11 @@ public class DestroyedEnvironment extends Environment {
         return EnvironmentType.DESTROYED;
     }
 
+    @Override
+    public void kill() {
+        // Nothing to do here
+    }
+
     public static DestroyedEnvironment deserialize(Mine mine, String data) {
         Map<String, String> map = new HashMap<>();
         for (String entry : data.split(",")) {
@@ -75,6 +84,7 @@ public class DestroyedEnvironment extends Environment {
         }
 
         float ratio = Float.parseFloat(map.get("ratio"));
-        return new DestroyedEnvironment(0, mine, ratio);
+        int blocksDestroyed = Integer.parseInt(map.get("blocksDestroyed"));
+        return new DestroyedEnvironment(0, mine, ratio, blocksDestroyed);
     }
 }
