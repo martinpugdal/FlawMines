@@ -12,6 +12,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.material.MaterialData;
 
+import java.util.List;
+
 public class RemoveBlockCommand extends SubCommand {
 
     public RemoveBlockCommand() {
@@ -59,5 +61,25 @@ public class RemoveBlockCommand extends SubCommand {
         sender.sendMessage("§aBlock removed!");
 
         return Result.success(this);
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender commandSender, String[] strings) {
+        if (strings.length == 1) {
+            return FlawMines.get().getMineManager(((Player) commandSender).getWorld()).getMineNames();
+        } else if (strings.length == 2) {
+            MineManager mineManager = FlawMines.get().getMineManager(((Player) commandSender).getWorld());
+            Mine mine = mineManager.getMine(strings[0]);
+            if (mine != null) {
+                List<MineBlock> blocks = mine.getBlocks();
+                String[] materials = new String[blocks.size()];
+                for (int i = 0; i < blocks.size(); i++) {
+                    materials[i] = blocks.get(i).getBlockData().getItemType().name();
+                }
+                return filterStartingWith(strings[1], materials);
+            }
+        }
+
+        return super.onTabComplete(commandSender, strings);
     }
 }

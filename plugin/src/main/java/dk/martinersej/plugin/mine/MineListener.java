@@ -9,10 +9,7 @@ import dk.martinersej.plugin.mine.environment.environments.DestroyedEnvironment;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockDamageEvent;
-import org.bukkit.event.block.BlockEvent;
-import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.*;
 
 import java.util.Set;
 
@@ -45,12 +42,14 @@ public class MineListener implements Listener {
     }
 
     @EventHandler
-    public void onBlockDamage(BlockDamageEvent event) {
+    public void onBlockExplode(BlockExplodeEvent event) {
         checkEvent(event);
     }
 
     @EventHandler
-    public void onBlockExplode(BlockExplodeEvent event) {
-        checkEvent(event);
+    public void onBlockForm(BlockFormEvent event) {
+        if (event.getNewState().getType().isAir()) {
+            checkEvent(event);
+        }
     }
 }
