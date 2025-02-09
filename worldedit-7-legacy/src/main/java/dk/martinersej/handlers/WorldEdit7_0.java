@@ -5,6 +5,7 @@ import com.sk89q.worldedit.IncompleteRegionException;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
+import com.sk89q.worldedit.function.mask.BlockMask;
 import com.sk89q.worldedit.function.pattern.AbstractPattern;
 import com.sk89q.worldedit.function.pattern.BlockPattern;
 import com.sk89q.worldedit.math.BlockVector2;
@@ -49,6 +50,17 @@ public class WorldEdit7_0 extends WorldEditInterface {
     @Override
     public BukkitWorld getBukkitWorld(World world) {
         return new BukkitWorld(world);
+    }
+
+    @Override
+    public BlockMask createBlockMask(EditSession editSession, MaterialData... materialDatas) {
+        BlockMask blockMask = new BlockMask(editSession);
+        for (MaterialData materialData : materialDatas) {
+            BlockData blockData = materialData.getItemType().createBlockData();
+            BlockState blockState = BukkitAdapter.adapt(blockData);
+            blockMask.add(blockState);
+        }
+        return blockMask;
     }
 
     @Override

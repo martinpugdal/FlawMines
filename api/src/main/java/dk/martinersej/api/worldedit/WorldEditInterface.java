@@ -3,6 +3,7 @@ package dk.martinersej.api.worldedit;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
+import com.sk89q.worldedit.function.mask.BlockMask;
 import com.sk89q.worldedit.function.pattern.AbstractPattern;
 import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.regions.Polygonal2DRegion;
@@ -26,6 +27,8 @@ public abstract class WorldEditInterface {
     public abstract WorldEditSelection getPlayerSelection(Player player);
 
     public abstract BukkitWorld getBukkitWorld(World world);
+
+    public abstract BlockMask createBlockMask(EditSession editSession, MaterialData... materialDatas);
 
     public abstract AbstractPattern createBlockPattern(MaterialData materialData);
 

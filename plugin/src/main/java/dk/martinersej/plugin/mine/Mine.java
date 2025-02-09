@@ -87,9 +87,7 @@ public class Mine {
             }
 
             if (fillmode) {
-                //TODO: Implement BlockMask in WorldEditInterface
-//                BlockMask mask = new BlockMask(session, airPattern.apply(null));
-                BlockMask mask = null;
+                BlockMask mask = worldEditInterface.createBlockMask(session, new MaterialData(Material.AIR));
                 session.replaceBlocks(mineRegion.getRegion(), mask, randomPattern);
             } else {
                 worldEditInterface.setBlocks(session, mineRegion.getRegion(), randomPattern);

@@ -5,6 +5,7 @@ import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.bukkit.selections.Selection;
+import com.sk89q.worldedit.function.mask.BlockMask;
 import com.sk89q.worldedit.function.pattern.AbstractPattern;
 import com.sk89q.worldedit.function.pattern.BlockPattern;
 import com.sk89q.worldedit.function.pattern.Pattern;
@@ -23,7 +24,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.material.MaterialData;
 import org.bukkit.util.Vector;
 
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +55,15 @@ public class WorldEdit6 extends WorldEditInterface {
     @Override
     public AbstractPattern createBlockPattern(MaterialData materialData) {
         return new BlockPattern(new BaseBlock(materialData.getItemType().getId(), materialData.getData()));
+    }
+
+    @Override
+    public BlockMask createBlockMask(EditSession editSession, MaterialData... materialDatas) {
+        BlockMask blockMask = new BlockMask(editSession);
+        for (MaterialData materialData : materialDatas) {
+            blockMask.add(new BaseBlock(materialData.getItemType().getId(), materialData.getData()));
+        }
+        return blockMask;
     }
 
     @Override
