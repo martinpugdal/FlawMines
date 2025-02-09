@@ -14,7 +14,7 @@ public class FlawMinesPlaceholderExpansion extends PlaceholderExpansion {
     public FlawMinesPlaceholderExpansion(FlawMines plugin) {
         this.plugin = plugin;
 
-        // load the requests here, maybe with reflection by the folder structure
+        // requests
         this.requests = new PAPIRequest[]{
             new ResetTimeRequest()
         };
