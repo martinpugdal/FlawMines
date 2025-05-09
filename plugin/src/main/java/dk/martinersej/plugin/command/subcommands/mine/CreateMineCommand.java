@@ -3,7 +3,7 @@ package dk.martinersej.plugin.command.subcommands.mine;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dk.martinersej.api.worldedit.WorldEditSelection;
 import dk.martinersej.plugin.FlawMines;
-import dk.martinersej.plugin.MineManager;
+import dk.martinersej.plugin.mine.MineManager;
 import dk.martinersej.plugin.mine.Mine;
 import dk.martinersej.plugin.utils.command.CommandResult;
 import dk.martinersej.plugin.utils.command.Result;

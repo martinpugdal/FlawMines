@@ -3,6 +3,7 @@ package dk.martinersej.plugin.command;
 import dk.martinersej.plugin.command.subcommands.block.AddBlockCommand;
 import dk.martinersej.plugin.command.subcommands.block.ListBlockCommand;
 import dk.martinersej.plugin.command.subcommands.block.RemoveBlockCommand;
+import dk.martinersej.plugin.command.subcommands.config.ConfigCommand;
 import dk.martinersej.plugin.command.subcommands.environment.AddEnvironmentCommand;
 import dk.martinersej.plugin.command.subcommands.environment.ListEnvironmentCommand;
 import dk.martinersej.plugin.command.subcommands.environment.RemoveEnvironmentCommand;
@@ -39,6 +40,8 @@ public class BaseCommand extends Command {
         addSubCommand(new AddEnvironmentCommand());
         addSubCommand(new RemoveEnvironmentCommand());
         addSubCommand(new ListEnvironmentCommand());
+
+        addSubCommand(new ConfigCommand());
     }
 
     @Override

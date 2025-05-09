@@ -1,7 +1,8 @@
 package dk.martinersej.plugin.placeholderapi.requests;
 
 import dk.martinersej.plugin.FlawMines;
-import dk.martinersej.plugin.MineManager;
+import dk.martinersej.plugin.mine.MineManager;
+import dk.martinersej.plugin.config.Messages;
 import dk.martinersej.plugin.mine.Mine;
 import dk.martinersej.plugin.mine.environment.Environment;
 import dk.martinersej.plugin.mine.environment.environments.ScheduledEnvironment;
@@ -15,7 +16,7 @@ import java.util.List;
 public class ResetTimeRequest extends PAPIRequest {
 
     public ResetTimeRequest() {
-        super("reset_time_(\\w+)"); // reset_time_<mine_name>
+        super("reset_time_(\\S+)"); // reset_time_<mine> (include all characters)
     }
 
     @Override
@@ -59,6 +60,10 @@ public class ResetTimeRequest extends PAPIRequest {
             if (timeLeft < shortestTimeLeft && timeLeft >= 0) {
                 shortestTimeLeft = timeLeft;
             }
+        }
+
+        if (shortestTimeLeft == Integer.MAX_VALUE) {
+            return Messages.RESETTING.get();
         }
 
         return TimeUtils.formatTime(shortestTimeLeft);

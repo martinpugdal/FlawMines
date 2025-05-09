@@ -6,8 +6,12 @@ import dk.martinersej.api.FlawMinesInterface;
 import dk.martinersej.api.worldedit.WorldEditInterface;
 import dk.martinersej.api.worldguard.WorldGuardInterface;
 import dk.martinersej.plugin.command.BaseCommand;
+import dk.martinersej.plugin.config.SettingsManager;
+import dk.martinersej.plugin.mine.MineController;
 import dk.martinersej.plugin.mine.MineListener;
+import dk.martinersej.plugin.mine.MineManager;
 import dk.martinersej.plugin.placeholderapi.FlawMinesPlaceholderExpansion;
+import dk.martinersej.plugin.utils.TaskUtils;
 import dk.martinersej.plugin.utils.command.CommandInjector;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -61,8 +65,6 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
         setupWorldEdit();
         // setup WorldGuard
         setupWorldGuard();
-        // setup PlaceholderAPI
-        setupPlaceholderAPI();
 
         // check if WorldEdit and WorldGuard is enabled
         if (worldEdit == null || worldGuard == null) {
@@ -74,6 +76,11 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
         // create the plugin folder if it doesn't exist
         if (!getDataFolder().exists())
             new File(getDataFolder().getAbsolutePath()).mkdirs();
+
+        // setup PlaceholderAPI
+        setupPlaceholderAPI();
+        // setup configs
+        SettingsManager.init(getDataFolder());
 
         // setup mine controller
         mineController = new MineController();
@@ -90,7 +97,7 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
         Bukkit.getPluginManager().registerEvents(new MineListener(), this);
 
         // load all worlds
-        Bukkit.getScheduler().runTask(this, () -> {
+        TaskUtils.runTaskSync(() -> {
             for (World world : Bukkit.getWorlds()) {
                 mineManagers.put(world, new MineManager(world));
                 mineManagers.get(world).enable();
@@ -122,7 +129,6 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
             // in 1.20.5 its relocated, so we can just handle it in the catch if it fails
             version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
         } catch (ArrayIndexOutOfBoundsException e) {
-            legacy = false;
             return;
         }
         // check if version is 1.12 or lower
@@ -136,7 +142,8 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
     }
 
     private void setupPlaceholderAPI() {
-        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+        Plugin plugin = getServer().getPluginManager().getPlugin("PlaceholderAPI");
+        if (plugin != null && plugin.isEnabled()) {
             new FlawMinesPlaceholderExpansion(this).register();
         }
     }

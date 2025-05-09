@@ -1,15 +1,13 @@
-package dk.martinersej.plugin;
+package dk.martinersej.plugin.mine;
 
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dk.martinersej.api.worldguard.WorldGuardInterface;
+import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.events.MinesWorldLoadEvent;
-import dk.martinersej.plugin.mine.Mine;
-import dk.martinersej.plugin.mine.MineBlock;
 import dk.martinersej.plugin.mine.environment.Environment;
 import dk.martinersej.plugin.mine.environment.EnvironmentType;
 import dk.martinersej.plugin.mine.environment.environments.DestroyedEnvironment;
 import dk.martinersej.plugin.mine.environment.environments.ScheduledEnvironment;
-import net.royawesome.jlibnoise.module.combiner.Min;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
@@ -31,7 +29,7 @@ public class MineManager {
         this.world = world;
     }
 
-    void enable() {
+    public void enable() {
         plugin.getLogger().info("Loading mines from world: " + world.getName());
 
         mines.putAll(mineController.loadMines(world));

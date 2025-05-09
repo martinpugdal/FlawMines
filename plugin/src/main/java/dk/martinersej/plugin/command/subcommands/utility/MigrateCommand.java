@@ -2,22 +2,18 @@ package dk.martinersej.plugin.command.subcommands.utility;
 
 import com.koletar.jj.mineresetlite.MineResetLite;
 import com.koletar.jj.mineresetlite.SerializableBlock;
-import com.sk89q.worldguard.bukkit.util.Materials;
-import com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dk.martinersej.plugin.FlawMines;
-import dk.martinersej.plugin.MineManager;
+import dk.martinersej.plugin.mine.MineManager;
 import dk.martinersej.plugin.mine.Mine;
 import dk.martinersej.plugin.mine.MineBlock;
 import dk.martinersej.plugin.mine.environment.EnvironmentType;
-import dk.martinersej.plugin.mine.environment.environments.ScheduledEnvironment;
 import dk.martinersej.plugin.utils.command.CommandResult;
 import dk.martinersej.plugin.utils.command.Result;
 import dk.martinersej.plugin.utils.command.SubCommand;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
 import org.bukkit.plugin.Plugin;
 

@@ -1,9 +1,8 @@
-package dk.martinersej.plugin;
+package dk.martinersej.plugin.mine;
 
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
-import dk.martinersej.plugin.mine.Mine;
+import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.mine.environment.Environment;
-import dk.martinersej.plugin.mine.MineBlock;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.util.BlockVector;
@@ -204,16 +203,7 @@ public class MineController {
     public void saveOnlyMine(Mine mine) {
         sync((connection) -> {
             try {
-                PreparedStatement statement = connection.prepareStatement(
-                    "UPDATE mines SET world = ?, region = ?, fillmode = ?, teleportLocation = ? WHERE id = ?"
-                );
-                statement.setString(1, mine.getWorld().getName());
-                statement.setString(2, mine.getRegion().getProtectedRegion().getId());
-                statement.setString(3, mine.getName());
-                statement.setBoolean(4, mine.isFillmode());
-                String teleportVectorMappedToString = serializeTeleportLocation(mine.getTeleportLocation());
-                statement.setString(5, teleportVectorMappedToString);
-                statement.executeUpdate();
+                createMineStatement(mine, connection).executeUpdate();
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
@@ -232,15 +222,7 @@ public class MineController {
             try {
                 connection.setAutoCommit(false);
 
-                PreparedStatement statement = connection.prepareStatement(
-                    "UPDATE mines SET world = ?, region = ?, fillmode = ?, teleportLocation = ? WHERE id = ?"
-                );
-                statement.setString(1, mine.getWorld().getName());
-                statement.setString(2, mine.getRegion().getProtectedRegion().getId());
-                statement.setString(3, mine.getName());
-                statement.setBoolean(4, mine.isFillmode());
-                String teleportVectorMappedToString = serializeTeleportLocation(mine.getTeleportLocation());
-                statement.setString(5, teleportVectorMappedToString);
+                PreparedStatement statement = createMineStatement(mine, connection);
 
                 PreparedStatement blockStatement = connection.prepareStatement(
                     "UPDATE mineBlocks SET data = ? WHERE id = ?"
@@ -281,6 +263,19 @@ public class MineController {
                 }
             }
         });
+    }
+
+    private PreparedStatement createMineStatement(Mine mine, Connection connection) throws SQLException {
+        PreparedStatement statement = connection.prepareStatement(
+            "UPDATE mines SET world = ?, region = ?, fillmode = ?, teleportLocation = ? WHERE id = ?"
+        );
+        statement.setString(1, mine.getWorld().getName());
+        statement.setString(2, mine.getRegion().getProtectedRegion().getId());
+        statement.setBoolean(3, mine.isFillmode());
+        String teleportVectorMappedToString = serializeTeleportLocation(mine.getTeleportLocation());
+        statement.setString(4, teleportVectorMappedToString);
+        statement.setString(5, mine.getName());
+        return statement;
     }
 
 

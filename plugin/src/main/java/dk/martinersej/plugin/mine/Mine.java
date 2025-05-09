@@ -12,6 +12,7 @@ import dk.martinersej.api.worldedit.WorldEditInterface;
 import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.events.MineResetEvent;
 import dk.martinersej.plugin.mine.environment.Environment;
+import dk.martinersej.plugin.utils.TaskUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -81,8 +82,8 @@ public class Mine {
                 randomPattern.add(blockPattern, block.getWeight());
             }));
 
-            AbstractPattern airPattern = worldEditInterface.createBlockPattern(new MaterialData(Material.AIR));
             if (blocks.isEmpty()) {
+                AbstractPattern airPattern = worldEditInterface.createBlockPattern(new MaterialData(Material.AIR));
                 randomPattern.add(airPattern, 100);
             }
 
@@ -95,8 +96,12 @@ public class Mine {
         } catch (MaxChangedBlocksException e) {
             e.printStackTrace();
         } finally {
-            FlawMines.get().getWorldEditInterface().closeEditSession(session);
             resetFinished();
+            try {
+                FlawMines.get().getWorldEditInterface().closeEditSession(session);
+            } catch (RuntimeException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -118,7 +123,7 @@ public class Mine {
             environment.reset();
         }
 
-        Bukkit.getScheduler().runTask(FlawMines.get(), () -> Bukkit.getPluginManager().callEvent(new MineResetEvent(this)));
+        TaskUtils.runTaskSync(() -> Bukkit.getPluginManager().callEvent(new MineResetEvent(this)));
     }
 
     public void addBlock(MineBlock block) {

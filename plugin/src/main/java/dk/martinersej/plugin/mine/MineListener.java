@@ -1,7 +1,6 @@
 package dk.martinersej.plugin.mine;
 
 import dk.martinersej.plugin.FlawMines;
-import dk.martinersej.plugin.MineManager;
 import dk.martinersej.plugin.mine.environment.Environment;
 import dk.martinersej.plugin.mine.environment.environments.DestroyedEnvironment;
 import org.bukkit.World;
