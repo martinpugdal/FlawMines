@@ -24,6 +24,7 @@ public class MineManager {
 
     private final World world;
     private final Map<ProtectedRegion, Mine> mines = new HashMap<>();
+    private final List<Mine> minesToReset = new ArrayList<>();
 
     public MineManager(World world) {
         this.world = world;
@@ -162,5 +163,19 @@ public class MineManager {
             mineNames.add(mine.getName());
         }
         return mineNames;
+    }
+
+    public void addMineToResetQueue(Mine mine) {
+        if (!minesToReset.contains(mine)) {
+            minesToReset.add(mine);
+        }
+    }
+
+    public List<Mine> getMinesToReset() {
+        return minesToReset;
+    }
+
+    public World getWorld() {
+        return world;
     }
 }

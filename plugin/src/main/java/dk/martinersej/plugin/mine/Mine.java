@@ -13,10 +13,7 @@ import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.events.MineResetEvent;
 import dk.martinersej.plugin.mine.environment.Environment;
 import dk.martinersej.plugin.utils.TaskUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.material.MaterialData;
 import org.bukkit.util.BlockVector;
@@ -65,6 +62,15 @@ public class Mine {
     }
 
     public void reset() {
+        // if the region is not loaded, we should not attempt to reset it
+        if (!getWorld().isChunkLoaded(getRegion().getRegion().getMinimumPoint().getBlockX() >> 4, getRegion().getRegion().getMinimumPoint().getBlockZ() >> 4) ||
+            !getWorld().isChunkLoaded(getRegion().getRegion().getMaximumPoint().getBlockX() >> 4, getRegion().getRegion().getMaximumPoint().getBlockZ() >> 4)) {
+            if (!FlawMines.get().isUnloadedEdits()) {
+                // add the mine to the queue to be reset later
+                FlawMines.get().getMineManager(getWorld()).addMineToResetQueue(this);
+                return;
+            }
+        }
         EditSessionFactory editSession = FlawMines.get().getWorldEdit().getWorldEdit().getEditSessionFactory();
         EditSession session = editSession.getEditSession(new BukkitWorld(getWorld()), getRegion().getVolume());
         try {
@@ -199,5 +205,18 @@ public class Mine {
         for (Environment environment : environments) {
             environment.kill();
         }
+    }
+
+    public boolean isInChunk(Chunk chunk) {
+        MineRegion region = getRegion();
+        org.bukkit.World world = chunk.getWorld();
+        if (!getWorld().equals(world)) return false;
+        int chunkX = chunk.getX();
+        int chunkZ = chunk.getZ();
+        int minX = region.getRegion().getMinimumPoint().getBlockX() >> 4;
+        int maxX = region.getRegion().getMaximumPoint().getBlockX() >> 4;
+        int minZ = region.getRegion().getMinimumPoint().getBlockZ() >> 4;
+        int maxZ = region.getRegion().getMaximumPoint().getBlockZ() >> 4;
+        return chunkX >= minX && chunkX <= maxX && chunkZ >= minZ && chunkZ <= maxZ;
     }
 }

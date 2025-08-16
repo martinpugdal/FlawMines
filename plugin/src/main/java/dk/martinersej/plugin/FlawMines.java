@@ -7,6 +7,7 @@ import dk.martinersej.api.worldedit.WorldEditInterface;
 import dk.martinersej.api.worldguard.WorldGuardInterface;
 import dk.martinersej.plugin.command.BaseCommand;
 import dk.martinersej.plugin.config.SettingsManager;
+import dk.martinersej.plugin.mine.MineChunkLoadListener;
 import dk.martinersej.plugin.mine.MineController;
 import dk.martinersej.plugin.mine.MineListener;
 import dk.martinersej.plugin.mine.MineManager;
@@ -40,8 +41,9 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
     private WorldEditInterface worldEditInterface = null;
     private WorldGuardPlugin worldGuard = null;
     private WorldGuardInterface worldGuardInterface = null;
-    private CommandInjector commandInjector;
+    private boolean unloadedEdits;
 
+    private CommandInjector commandInjector;
     private MineController mineController;
 
     public static FlawMines get() {
@@ -73,6 +75,9 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
             return;
         }
 
+        // check for unloaded edits (fawe support)
+        unloadedEdits = supportsUnloadedEdits();
+
         // create the plugin folder if it doesn't exist
         if (!getDataFolder().exists())
             new File(getDataFolder().getAbsolutePath()).mkdirs();
@@ -101,8 +106,18 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
             for (World world : Bukkit.getWorlds()) {
                 mineManagers.put(world, new MineManager(world));
                 mineManagers.get(world).enable();
+                // Register chunk load listener if unloaded edits are not supported
+                if (!isUnloadedEdits()) {
+                    Bukkit.getPluginManager().registerEvents(
+                        new MineChunkLoadListener(mineManagers.get(world)), this);
+                }
             }
         });
+    }
+
+    private boolean supportsUnloadedEdits() {
+        Plugin fawe = Bukkit.getPluginManager().getPlugin("FastAsyncWorldEdit");
+        return fawe != null && fawe.isEnabled() && fawe.getDescription().getVersion().startsWith("2."); // FastAsyncWorldEdit 2.x supports unloaded edits
     }
 
     @Override
@@ -115,6 +130,7 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
         worldEditInterface = null;
         worldGuard = null;
         worldGuardInterface = null;
+        unloadedEdits = false;
 
         if (commandInjector != null) {
             commandInjector.disableAllCommands();
@@ -274,5 +290,9 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
 
     public MineController getMineController() {
         return mineController;
+    }
+
+    public boolean isUnloadedEdits() {
+        return unloadedEdits;
     }
 }

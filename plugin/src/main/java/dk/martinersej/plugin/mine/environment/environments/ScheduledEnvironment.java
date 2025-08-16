@@ -65,6 +65,13 @@ public class ScheduledEnvironment extends Environment {
             long timeSinceLastRun = System.currentTimeMillis() - lastRun;
             delay = (int) (intervalSeconds * 20 - timeSinceLastRun / 50);
         }
+
+        // if the delay is less than 0, we should not schedule the task, but reset immediately
+        if (delay <= 0) {
+            mine.reset();
+            return;
+        }
+
         BukkitTask task = new BukkitRunnable() {
             @Override
             public void run() {
