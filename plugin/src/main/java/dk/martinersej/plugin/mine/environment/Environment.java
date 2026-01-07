@@ -51,6 +51,9 @@ public abstract class Environment {
         return environment;
     }
 
+    public Mine getMine() {
+        return mine;
+    }
 
     public int getId() {
         return id;

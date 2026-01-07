@@ -4,9 +4,6 @@ import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.mine.Mine;
 import dk.martinersej.plugin.mine.environment.Environment;
 import dk.martinersej.plugin.mine.environment.EnvironmentType;
-import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,7 +11,7 @@ import java.util.Map;
 public class ScheduledEnvironment extends Environment {
 
     private final int intervalSeconds; // The interval in seconds between each reset
-    private int taskId = -1; // The task id of the scheduled task
+    private long targetResetTime; // The absolute time in milliseconds when the next reset should occur
     private long lastRun; // The time in milliseconds since the last run
 
     // this is used for creating the environment, and the id will be placed by the database then queried
@@ -32,7 +29,11 @@ public class ScheduledEnvironment extends Environment {
         // Set the last run time to the current time minus the time since last run
         this.lastRun = System.currentTimeMillis() - timeSinceLastRun;
 
-        scheduleResetTask();
+        // Calculate the target reset time based on real-world time
+        this.targetResetTime = System.currentTimeMillis() + (intervalSeconds * 1000L) - timeSinceLastRun;
+
+        // Register with the centralized scheduler
+        FlawMines.get().getResetScheduler().register(this);
     }
 
     public int getIntervalSeconds() {
@@ -46,39 +47,17 @@ public class ScheduledEnvironment extends Environment {
     }
 
     public int getTimeLeft() {
-        int timeSinceLastRun = (int) (System.currentTimeMillis() - lastRun) / 1000; // in seconds
-        return intervalSeconds - timeSinceLastRun;
+        return (int) ((targetResetTime - System.currentTimeMillis()) / 1000);
+    }
+
+    public long getTargetResetTime() {
+        return targetResetTime;
     }
 
     @Override
     public void reset() {
         lastRun = System.currentTimeMillis();
-        if (taskId != -1) { // if the task is still running, cancel it
-            Bukkit.getServer().getScheduler().cancelTask(taskId);
-        }
-        scheduleResetTask();
-    }
-
-    private void scheduleResetTask() {
-        int delay = intervalSeconds * 20;
-        if (lastRun != 0) {
-            long timeSinceLastRun = System.currentTimeMillis() - lastRun;
-            delay = (int) (intervalSeconds * 20 - timeSinceLastRun / 50);
-        }
-
-        // if the delay is less than 0, we should not schedule the task, but reset immediately
-        if (delay <= 0) {
-            mine.reset();
-            return;
-        }
-
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                mine.reset();
-            }
-        }.runTaskLater(FlawMines.get(), delay);
-        taskId = task.getTaskId();
+        targetResetTime = lastRun + (intervalSeconds * 1000L);
     }
 
     @Override
@@ -118,6 +97,6 @@ public class ScheduledEnvironment extends Environment {
 
     @Override
     public void kill() {
-        Bukkit.getServer().getScheduler().cancelTask(taskId);
+        FlawMines.get().getResetScheduler().unregister(this);
     }
 }

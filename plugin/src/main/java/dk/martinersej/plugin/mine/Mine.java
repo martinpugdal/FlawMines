@@ -62,14 +62,11 @@ public class Mine {
     }
 
     public void reset() {
-        // if the region is not loaded, we should not attempt to reset it
+        // if the region is not loaded, queue reset for when chunks load
         if (!getWorld().isChunkLoaded(getRegion().getRegion().getMinimumPoint().getBlockX() >> 4, getRegion().getRegion().getMinimumPoint().getBlockZ() >> 4) ||
             !getWorld().isChunkLoaded(getRegion().getRegion().getMaximumPoint().getBlockX() >> 4, getRegion().getRegion().getMaximumPoint().getBlockZ() >> 4)) {
-            if (!FlawMines.get().isUnloadedEdits()) {
-                // add the mine to the queue to be reset later
-                FlawMines.get().getMineManager(getWorld()).addMineToResetQueue(this);
-                return;
-            }
+            FlawMines.get().getMineManager(getWorld()).addMineToResetQueue(this);
+            return;
         }
         EditSessionFactory editSession = FlawMines.get().getWorldEdit().getWorldEdit().getEditSessionFactory();
         EditSession session = editSession.getEditSession(new BukkitWorld(getWorld()), getRegion().getVolume());

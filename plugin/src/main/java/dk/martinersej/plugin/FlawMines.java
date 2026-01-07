@@ -11,6 +11,7 @@ import dk.martinersej.plugin.mine.MineChunkLoadListener;
 import dk.martinersej.plugin.mine.MineController;
 import dk.martinersej.plugin.mine.MineListener;
 import dk.martinersej.plugin.mine.MineManager;
+import dk.martinersej.plugin.mine.ResetScheduler;
 import dk.martinersej.plugin.placeholderapi.FlawMinesPlaceholderExpansion;
 import dk.martinersej.plugin.utils.TaskUtils;
 import dk.martinersej.plugin.utils.command.CommandInjector;
@@ -41,10 +42,10 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
     private WorldEditInterface worldEditInterface = null;
     private WorldGuardPlugin worldGuard = null;
     private WorldGuardInterface worldGuardInterface = null;
-    private boolean unloadedEdits;
 
     private CommandInjector commandInjector;
     private MineController mineController;
+    private ResetScheduler resetScheduler;
 
     public static FlawMines get() {
         return instance;
@@ -75,9 +76,6 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
             return;
         }
 
-        // check for unloaded edits (fawe support)
-        unloadedEdits = supportsUnloadedEdits();
-
         // create the plugin folder if it doesn't exist
         if (!getDataFolder().exists())
             new File(getDataFolder().getAbsolutePath()).mkdirs();
@@ -89,6 +87,9 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
 
         // setup mine controller
         mineController = new MineController();
+
+        // setup reset scheduler (must be before mines are loaded)
+        resetScheduler = new ResetScheduler(this);
 
         // setup world listener
         getServer().getPluginManager().registerEvents(this, this);
@@ -106,22 +107,19 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
             for (World world : Bukkit.getWorlds()) {
                 mineManagers.put(world, new MineManager(world));
                 mineManagers.get(world).enable();
-                // Register chunk load listener if unloaded edits are not supported
-                if (!isUnloadedEdits()) {
-                    Bukkit.getPluginManager().registerEvents(
-                        new MineChunkLoadListener(mineManagers.get(world)), this);
-                }
+                // Register chunk load listener for queued resets
+                Bukkit.getPluginManager().registerEvents(
+                    new MineChunkLoadListener(mineManagers.get(world)), this);
             }
         });
     }
 
-    private boolean supportsUnloadedEdits() {
-        Plugin fawe = Bukkit.getPluginManager().getPlugin("FastAsyncWorldEdit");
-        return fawe != null && fawe.isEnabled() && fawe.getDescription().getVersion().startsWith("2."); // FastAsyncWorldEdit 2.x supports unloaded edits
-    }
-
     @Override
     public void onDisable() {
+        if (resetScheduler != null) {
+            resetScheduler.stop();
+        }
+
         for (MineManager mineManager : mineManagers.values()) {
             mineManager.disable();
         }
@@ -130,7 +128,6 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
         worldEditInterface = null;
         worldGuard = null;
         worldGuardInterface = null;
-        unloadedEdits = false;
 
         if (commandInjector != null) {
             commandInjector.disableAllCommands();
@@ -292,7 +289,7 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
         return mineController;
     }
 
-    public boolean isUnloadedEdits() {
-        return unloadedEdits;
+    public ResetScheduler getResetScheduler() {
+        return resetScheduler;
     }
 }
