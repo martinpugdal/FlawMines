@@ -14,8 +14,6 @@ public class ConfigCommand extends SubCommand {
 
     public ConfigCommand() {
         super(new String[]{"config"}, "Reload configs", "config reload", "flawmines.config", "flawmines.config.reload");
-
-        setPlayerOnly(true);
     }
 
     @Override

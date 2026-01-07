@@ -11,6 +11,10 @@ import dk.martinersej.plugin.utils.command.SubCommand;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class AddEnvironmentCommand extends SubCommand {
 
     public AddEnvironmentCommand() {
@@ -65,5 +69,19 @@ public class AddEnvironmentCommand extends SubCommand {
 
         sender.sendMessage("§aEnvironment created in mine: " + mine.getName());
         return Result.success(this);
+    }
+
+    private static final List<String> environmentTypes = Arrays.stream(EnvironmentType.values())
+        .map(Enum::name)
+        .collect(Collectors.toList());
+
+    @Override
+    public List<String> onTabComplete(CommandSender commandSender, String[] strings) {
+        if (strings.length == 1) {
+            return filterStartingWith(strings[0], FlawMines.get().getMineManager(((Player) commandSender).getWorld()).getMineNames());
+        } else if (strings.length == 2) {
+            return filterStartingWith(strings[1], environmentTypes);
+        }
+        return super.onTabComplete(commandSender, strings);
     }
 }

@@ -9,6 +9,8 @@ import dk.martinersej.plugin.utils.command.SubCommand;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.List;
+
 public class ResetMineCommand extends SubCommand {
 
     public ResetMineCommand() {
@@ -37,5 +39,13 @@ public class ResetMineCommand extends SubCommand {
         sender.sendMessage("§aMine reset!");
 
         return Result.success(this);
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender commandSender, String[] strings) {
+        if (strings.length == 1) {
+            return filterStartingWith(strings[0], FlawMines.get().getMineManager(((Player) commandSender).getWorld()).getMineNames());
+        }
+        return super.onTabComplete(commandSender, strings);
     }
 }

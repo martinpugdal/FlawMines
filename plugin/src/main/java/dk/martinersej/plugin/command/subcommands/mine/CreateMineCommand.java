@@ -12,6 +12,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class CreateMineCommand extends SubCommand {
 
     public CreateMineCommand() {
@@ -69,5 +72,15 @@ public class CreateMineCommand extends SubCommand {
 
         sender.sendMessage("§aMine created!");
         return Result.success(this);
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender commandSender, String[] strings) {
+        if (strings.length == 2) {
+            List<String> regionNames = new ArrayList<>(FlawMines.get().getWorldGuardInterface()
+                .getRegionManager(((Player) commandSender).getWorld()).getRegions().keySet());
+            return filterStartingWith(strings[1], regionNames);
+        }
+        return super.onTabComplete(commandSender, strings);
     }
 }

@@ -10,6 +10,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.BlockVector;
 
+import java.util.List;
+
 public class SetTeleportMineCommand extends SubCommand {
 
     public SetTeleportMineCommand() {
@@ -52,5 +54,13 @@ public class SetTeleportMineCommand extends SubCommand {
         sender.sendMessage("§aTeleport location set for mine: " + mine.getName());
 
         return Result.success(this);
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender commandSender, String[] strings) {
+        if (strings.length == 1) {
+            return filterStartingWith(strings[0], FlawMines.get().getMineManager(((Player) commandSender).getWorld()).getMineNames());
+        }
+        return super.onTabComplete(commandSender, strings);
     }
 }

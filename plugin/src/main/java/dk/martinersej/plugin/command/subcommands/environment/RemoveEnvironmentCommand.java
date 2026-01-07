@@ -10,6 +10,9 @@ import dk.martinersej.plugin.utils.command.SubCommand;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class RemoveEnvironmentCommand extends SubCommand {
 
     public RemoveEnvironmentCommand() {
@@ -47,5 +50,22 @@ public class RemoveEnvironmentCommand extends SubCommand {
         sender.sendMessage("§aEnvironment removed!");
 
         return Result.success(this);
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender commandSender, String[] strings) {
+        if (strings.length == 1) {
+            return filterStartingWith(strings[0], FlawMines.get().getMineManager(((Player) commandSender).getWorld()).getMineNames());
+        } else if (strings.length == 2) {
+            MineManager mineManager = FlawMines.get().getMineManager(((Player) commandSender).getWorld());
+            Mine mine = mineManager.getMine(strings[0]);
+            if (mine != null) {
+                List<String> envIds = mine.getEnvironments().stream()
+                    .map(env -> String.valueOf(env.getId()))
+                    .collect(Collectors.toList());
+                return filterStartingWith(strings[1], envIds);
+            }
+        }
+        return super.onTabComplete(commandSender, strings);
     }
 }

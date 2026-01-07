@@ -20,6 +20,7 @@ import org.bukkit.plugin.Plugin;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class MigrateCommand extends SubCommand {
 
@@ -90,5 +91,28 @@ public class MigrateCommand extends SubCommand {
 
         player.sendMessage("The mine " + args[1] + " has been imported from " + mineResetLite.getName());
         return Result.success(this);
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender commandSender, String[] strings) {
+        if (strings.length == 1) {
+            List<String> pluginNames = supportedPlugins.stream()
+                .map(Plugin::getName)
+                .collect(Collectors.toList());
+            return filterStartingWith(strings[0], pluginNames);
+        } else if (strings.length == 2) {
+            Plugin plugin = supportedPlugins.stream()
+                .filter(p -> p.getName().equalsIgnoreCase(strings[0]))
+                .findFirst()
+                .orElse(null);
+            if (plugin instanceof MineResetLite) {
+                MineResetLite mineResetLite = (MineResetLite) plugin;
+                List<String> mineNames = mineResetLite.mines.stream()
+                    .map(com.koletar.jj.mineresetlite.Mine::getName)
+                    .collect(Collectors.toList());
+                return filterStartingWith(strings[1], mineNames);
+            }
+        }
+        return super.onTabComplete(commandSender, strings);
     }
 }
