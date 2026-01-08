@@ -29,7 +29,7 @@ public class DestroyedEnvironment extends Environment {
             throw new IllegalArgumentException("The ratio must be between 0 and 100");
         }
         this.ratio = ratio / 100f; // Convert the ratio to 0-1
-        this.blocksNeeded = (int) (mine.getTotalBlocks() * ratio); // Calculate the amount of blocks needed to be destroyed
+        this.blocksNeeded = (int) (mine.getTotalBlocks() * this.ratio); // Calculate the blocks needed
         this.blocksDestroyed = blocksDestroyed;
     }
 
