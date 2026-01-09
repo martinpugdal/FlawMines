@@ -298,12 +298,19 @@ public class MineController {
         sync((connection) -> {
             try {
                 PreparedStatement statement = connection.prepareStatement(
-                    "INSERT INTO mineBlocks (mineId, data) VALUES (?, ?)"
+                    "INSERT INTO mineBlocks (mineId, data) VALUES (?, ?)",
+                    Statement.RETURN_GENERATED_KEYS
                 );
                 statement.setString(1, name);
                 statement.setString(2, block.serialize());
-                int id = statement.executeUpdate(); // get the id of the block
-                block.setId(id);
+                statement.executeUpdate();
+
+                ResultSet generatedKeys = statement.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    block.setId(generatedKeys.getInt(1));
+                } else {
+                    throw new SQLException("Creating block failed, no ID obtained.");
+                }
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
@@ -320,7 +327,8 @@ public class MineController {
                 statement.executeUpdate();
 
                 PreparedStatement insertStatement = connection.prepareStatement(
-                    "INSERT INTO mineBlocks (mineId, data) VALUES (?, ?)"
+                    "INSERT INTO mineBlocks (mineId, data) VALUES (?, ?)",
+                    Statement.RETURN_GENERATED_KEYS
                 );
                 for (MineBlock block : blocks) {
                     insertStatement.setString(1, name);
@@ -328,6 +336,13 @@ public class MineController {
                     insertStatement.addBatch();
                 }
                 insertStatement.executeBatch();
+
+                ResultSet generatedKeys = insertStatement.getGeneratedKeys();
+                int index = 0;
+                while (generatedKeys.next() && index < blocks.size()) {
+                    blocks.get(index).setId(generatedKeys.getInt(1));
+                    index++;
+                }
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
@@ -367,13 +382,20 @@ public class MineController {
         sync((connection) -> {
             try {
                 PreparedStatement statement = connection.prepareStatement(
-                    "INSERT INTO mineEnvironments (mineId, type, data) VALUES (?, ?, ?)"
+                    "INSERT INTO mineEnvironments (mineId, type, data) VALUES (?, ?, ?)",
+                    Statement.RETURN_GENERATED_KEYS
                 );
                 statement.setString(1, name);
                 statement.setString(2, environment.getClass().getSimpleName());
                 statement.setString(3, environment.serialize());
-                int id = statement.executeUpdate();
-                environment.setId(id);
+                statement.executeUpdate();
+
+                ResultSet generatedKeys = statement.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    environment.setId(generatedKeys.getInt(1));
+                } else {
+                    throw new SQLException("Creating environment failed, no ID obtained.");
+                }
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
