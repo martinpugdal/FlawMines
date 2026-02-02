@@ -27,21 +27,28 @@ public abstract class Environment {
     public abstract EnvironmentType getType();
 
     public static Environment deserialize(Mine mine, String type, String data) {
-        // Deserialize the data
-        Map<String, String> map = new HashMap<>();
-        for (String entry : data.split(",")) {
-            String[] split = entry.split(":");
-            if (split.length == 2) {
-                map.put(split[0], split[1]);
+        // Try to parse type using EnvironmentType (supports aliases)
+        EnvironmentType envType = EnvironmentType.fromString(type);
+
+        // Fallback to class name matching for backwards compatibility
+        if (envType == null) {
+            if ("DestroyedEnvironment".equals(type)) {
+                envType = EnvironmentType.DESTROYED;
+            } else if ("ScheduledEnvironment".equals(type)) {
+                envType = EnvironmentType.SCHEDULED;
             }
         }
 
+        if (envType == null) {
+            throw new IllegalArgumentException("Unknown environment type: " + type);
+        }
+
         Environment environment;
-        switch (type) {
-            case "DestroyedEnvironment":
+        switch (envType) {
+            case DESTROYED:
                 environment = DestroyedEnvironment.deserialize(mine, data);
                 break;
-            case "ScheduledEnvironment":
+            case SCHEDULED:
                 environment = ScheduledEnvironment.deserialize(mine, data);
                 break;
             default:

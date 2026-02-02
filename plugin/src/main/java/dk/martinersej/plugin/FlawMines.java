@@ -9,6 +9,7 @@ import dk.martinersej.plugin.command.BaseCommand;
 import dk.martinersej.plugin.config.SettingsManager;
 import dk.martinersej.plugin.mine.MineChunkLoadListener;
 import dk.martinersej.plugin.mine.MineController;
+import dk.martinersej.plugin.mine.MineDataMigrator;
 import dk.martinersej.plugin.mine.MineListener;
 import dk.martinersej.plugin.mine.MineManager;
 import dk.martinersej.plugin.mine.ResetScheduler;
@@ -84,6 +85,11 @@ public final class FlawMines extends JavaPlugin implements Listener, FlawMinesIn
         setupPlaceholderAPI();
         // setup configs
         SettingsManager.init(getDataFolder());
+
+        // migrate from SQLite to YAML if needed
+        if (MineDataMigrator.needsMigration(getDataFolder())) {
+            MineDataMigrator.migrate(getDataFolder());
+        }
 
         // setup mine controller
         mineController = new MineController();

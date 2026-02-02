@@ -1,0 +1,119 @@
+# ============================================================
+#                    FlawMines - Mine Configuration
+# ============================================================
+# This is an example configuration file for a mine.
+# Copy this file, rename it to <mine-name>.yml and edit it.
+#
+# IMPORTANT: The filename (without .yml) should match the 'name' field.
+# Example: If name is "diamond_mine", the file should be "diamond_mine.yml"
+#
+# After editing, use /fm config reload to apply changes.
+# ============================================================
+
+# The unique name/id of the mine (must match filename)
+name: "example_mine"
+
+# The world where this mine is located
+world: "world"
+
+# The WorldGuard region name that defines the mine area
+# This region must already exist in WorldGuard
+region: "example_mine_region"
+
+# Fill mode: If true, only air blocks are replaced during reset
+# If false, all blocks in the region are replaced
+fillmode: false
+
+# Teleport location - where players are teleported during mine reset
+# Usually set above the mine to prevent players being stuck in blocks
+teleportLocation:
+  x: 100.0
+  y: 70.0
+  z: 200.0
+
+# ============================================================
+#                         BLOCKS
+# ============================================================
+# Define which blocks spawn in the mine and their weights.
+# Weight determines spawn probability relative to other blocks.
+#
+# Example: If STONE has weight 70 and DIAMOND_ORE has weight 5,
+# stone will spawn ~14x more often than diamond ore.
+#
+# Available fields:
+#   material: The block type (use Bukkit/Spigot material names)
+#   weight:   Spawn weight (higher = more common)
+#   data:     (Optional, legacy 1.12 and below) Block data value
+# ============================================================
+blocks:
+  - material: "STONE"
+    weight: 50.0
+
+  - material: "COBBLESTONE"
+    weight: 20.0
+
+  - material: "COAL_ORE"
+    weight: 15.0
+
+  - material: "IRON_ORE"
+    weight: 8.0
+
+  - material: "GOLD_ORE"
+    weight: 4.0
+
+  - material: "DIAMOND_ORE"
+    weight: 2.0
+
+  - material: "EMERALD_ORE"
+    weight: 1.0
+
+# ============================================================
+#                       ENVIRONMENTS
+# ============================================================
+# Environments define when the mine should automatically reset.
+# You can have multiple environments - the mine resets when ANY
+# environment triggers.
+#
+# Available types:
+#
+# 1. SCHEDULED (aliases: scheduled, timer, time, schedule)
+#    Resets the mine after a set time interval.
+#    - intervalSeconds: Time between resets in seconds
+#    - timeSinceLastRun: (auto-saved) Time elapsed since last reset
+#
+# 2. DESTROYED (aliases: destroyed, destroy)
+#    Resets the mine when a percentage of blocks are mined.
+#    - ratio: Percentage of blocks (0.0 - 1.0, where 0.5 = 50%)
+#    - blocksDestroyed: (auto-saved) Current destroyed block count
+# ============================================================
+environments:
+  # Reset every 5 minutes (300 seconds)
+  - type: "scheduled"
+    intervalSeconds: 300
+
+  # Also reset when 80% of blocks are mined
+  - type: "destroyed"
+    ratio: 0.8
+
+# ============================================================
+#                    ADDITIONAL EXAMPLES
+# ============================================================
+#
+# Example: Timer-only mine (resets every 10 minutes)
+# environments:
+#   - type: "timer"
+#     intervalSeconds: 600
+#
+# Example: Destruction-only mine (resets at 50% mined)
+# environments:
+#   - type: "destroy"
+#     ratio: 0.5
+#
+# Example: Fast-reset PvP mine
+# environments:
+#   - type: "scheduled"
+#     intervalSeconds: 60
+#   - type: "destroyed"
+#     ratio: 0.3
+#
+# ============================================================

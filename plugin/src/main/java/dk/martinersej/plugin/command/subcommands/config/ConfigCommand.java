@@ -2,9 +2,12 @@ package dk.martinersej.plugin.command.subcommands.config;
 
 import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.config.SettingsManager;
+import dk.martinersej.plugin.mine.MineManager;
 import dk.martinersej.plugin.utils.command.CommandResult;
 import dk.martinersej.plugin.utils.command.Result;
 import dk.martinersej.plugin.utils.command.SubCommand;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 
 import java.util.ArrayList;
@@ -26,7 +29,16 @@ public class ConfigCommand extends SubCommand {
 
         if (action.equalsIgnoreCase("reload")) {
             SettingsManager.reload(FlawMines.get().getDataFolder());
-            sender.sendMessage("§aReloaded configs!");
+
+            // Reload all mines from YAML files
+            for (World world : Bukkit.getWorlds()) {
+                MineManager manager = FlawMines.get().getMineManager(world);
+                if (manager != null) {
+                    manager.reload();
+                }
+            }
+
+            sender.sendMessage("§aReloaded configs and mines!");
             return Result.success(this);
         }
         return Result.success(this);

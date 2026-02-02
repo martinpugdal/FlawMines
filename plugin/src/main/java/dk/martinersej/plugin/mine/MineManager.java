@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 public class MineManager {
@@ -24,7 +25,7 @@ public class MineManager {
 
     private final World world;
     private final Map<ProtectedRegion, Mine> mines = new HashMap<>();
-    private final List<Mine> minesToReset = new ArrayList<>();
+    private final List<Mine> minesToReset = new CopyOnWriteArrayList<>();
 
     public MineManager(World world) {
         this.world = world;
@@ -94,27 +95,22 @@ public class MineManager {
         MineBlock existingBlock = mine.getBlock(block.getBlockData());
         if (existingBlock != null) {
             existingBlock.setWeight(block.getWeight());
-            mineController.updateBlock(existingBlock);
+            mineController.saveMine(mine);
             return existingBlock;
         }
         mine.addBlock(block);
-        mineController.addBlock(mine.getName(), block);
+        mineController.saveMine(mine);
         return null;
     }
 
     public void setBlocks(Mine mine, List<MineBlock> blocks) {
         mine.setBlocks(blocks);
-        mineController.setBlocks(mine.getName(), blocks);
+        mineController.saveMine(mine);
     }
 
     public void removeBlock(Mine mine, MineBlock block) {
-        if (block.getId() == -1) {
-            plugin.getLogger().warning("Block not found in mine: " + mine.getName());
-            return;
-        }
-
         mine.removeBlock(block);
-        mineController.removeBlock(block);
+        mineController.saveMine(mine);
     }
 
     public Environment addEnvironment(Mine mine, EnvironmentType environmentType, Object[] values) {
@@ -140,17 +136,37 @@ public class MineManager {
             }
         }
         mine.addEnvironment(environment);
-        mineController.addEnvironment(mine.getName(), environment);
+        mineController.saveMine(mine);
         return environment;
     }
 
     public void removeEnvironment(Mine mine, Environment environment) {
         mine.removeEnvironment(environment);
-        mineController.removeEnvironment(environment);
+        mineController.saveMine(mine);
     }
 
     public void editMine(Mine mine, Consumer<Mine> function) {
         function.andThen((v) -> mineController.saveOnlyMine(mine)).accept(mine);
+    }
+
+    public void reload() {
+        // Save and remove all current mines
+        for (Mine mine : mines.values()) {
+            mineController.saveMine(mine);
+            mine.remove();
+        }
+        mines.clear();
+
+        // Reload from YAML files
+        mines.putAll(mineController.loadMines(world));
+        for (Mine mine : mines.values()) {
+            plugin.getLogger().info("Reloaded mine: " + mine.getName());
+        }
+
+        if (!mines.isEmpty()) {
+            plugin.getLogger().info("Reloaded " + mines.size() + " mines from world: " + world.getName());
+            Bukkit.getPluginManager().callEvent(new MinesWorldLoadEvent(new ArrayList<>(mines.values()), world));
+        }
     }
 
     public List<Mine> getMines() {

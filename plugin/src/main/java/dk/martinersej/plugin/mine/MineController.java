@@ -3,446 +3,312 @@ package dk.martinersej.plugin.mine;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import dk.martinersej.plugin.FlawMines;
 import dk.martinersej.plugin.mine.environment.Environment;
-import org.bukkit.Bukkit;
+import dk.martinersej.plugin.mine.environment.EnvironmentType;
+import dk.martinersej.plugin.mine.environment.environments.DestroyedEnvironment;
+import dk.martinersej.plugin.mine.environment.environments.ScheduledEnvironment;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.material.MaterialData;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import java.io.File;
-import java.sql.*;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
 
 public class MineController {
 
-    private final Lock lock = new ReentrantLock(true);
-    private Connection connection;
+    private final File minesFolder;
 
     public MineController() {
-        establishConnection();
-        createTables();
+        this.minesFolder = new File(FlawMines.get().getDataFolder(), "mines");
+        if (!minesFolder.exists()) {
+            minesFolder.mkdirs();
+            // Copy example config to help users understand the format
+            copyExampleConfig();
+        }
     }
 
-    private void establishConnection() {
+    private void copyExampleConfig() {
         try {
-            Class.forName(getDriver());
-            connection = DriverManager.getConnection(getURL());
-        } catch (ClassNotFoundException | SQLException e) {
+            FlawMines plugin = FlawMines.get();
+            File exampleFile = new File(minesFolder, "example.yml.txt");
+            if (!exampleFile.exists()) {
+                plugin.saveResource("mines/example.yml.txt", false);
+            }
+        } catch (Exception e) {
+            FlawMines.get().getLogger().warning("Could not copy example mine config: " + e.getMessage());
+        }
+    }
+
+    private File getMineFile(String mineName) {
+        return new File(minesFolder, mineName + ".yml");
+    }
+
+    public void createMine(String id, World world, String region, Vector teleportLocation) {
+        File file = getMineFile(id);
+        YamlConfiguration config = new YamlConfiguration();
+
+        config.set("name", id);
+        config.set("world", world.getName());
+        config.set("region", region);
+        config.set("fillmode", false);
+        config.set("teleportLocation.x", teleportLocation.getX());
+        config.set("teleportLocation.y", teleportLocation.getY());
+        config.set("teleportLocation.z", teleportLocation.getZ());
+        config.set("blocks", new ArrayList<>());
+        config.set("environments", new ArrayList<>());
+
+        try {
+            config.save(file);
+        } catch (IOException e) {
+            FlawMines.get().getLogger().severe("Failed to create mine file: " + id);
             e.printStackTrace();
         }
-        if (isConnected()) {
-            FlawMines.get().getLogger().info("Connected to database");
-        } else {
-            FlawMines.get().getLogger().severe("Failed to connect to database");
-        }
-    }
-
-    public boolean isConnected() {
-        try {
-            return connection != null && !connection.isClosed();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public Connection getConnection() {
-        return connection;
-    }
-
-    public String getDatabase() {
-        return FlawMines.get().getName();
-    }
-
-    public String getURL() {
-        return String.format("jdbc:sqlite:%s%s%s.db", FlawMines.get().getDataFolder(), File.separator, getDatabase());
-    }
-
-    public String getDriver() {
-        return "org.sqlite.JDBC";
-    }
-
-    public void createTables() {
-        List<String> tables = new ArrayList<>();
-
-        String minesTable = "CREATE TABLE IF NOT EXISTS mines (" +
-            "id TEXT NOT NULL PRIMARY KEY," + // the name of the mine
-            "world TEXT NOT NULL," + // where its located
-            "region TEXT NOT NULL, " + // the region name
-            "fillmode INT(1) DEFAULT 0, " + // if the mine is in fillmode
-            "teleportLocation TEXT" + // the location to teleport to
-            ");";
-        tables.add(minesTable);
-
-        String blocksTable = "CREATE TABLE IF NOT EXISTS mineBlocks (" +
-            "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," +
-            "mineId TEXT NOT NULL," +
-            "data TEXT NOT NULL," +
-            "FOREIGN KEY (mineId) REFERENCES mines(id) ON DELETE CASCADE" +
-            ");";
-        tables.add(blocksTable);
-
-        String environmentsTable = "CREATE TABLE IF NOT EXISTS mineEnvironments (" +
-            "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL," +
-            "mineId TEXT NOT NULL," +
-            "type TEXT NOT NULL," +
-            "data TEXT NOT NULL," +
-            "FOREIGN KEY (mineId) REFERENCES mines(id) ON DELETE CASCADE" +
-            ");";
-        tables.add(environmentsTable);
-
-        sync((connection) -> {
-            try {
-                for (String table : tables) {
-                    connection.createStatement().executeUpdate(table);
-                }
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
-
-    public void createMine(String id, World world, String region, Vector maximumPoint) {
-        sync((connection) -> {
-            try {
-                PreparedStatement statement = connection.prepareStatement(
-                    "INSERT INTO mines (id, world, region, teleportLocation) VALUES (?, ?, ?, ?)"
-                );
-                statement.setString(1, id);
-                statement.setString(2, world.getName());
-                statement.setString(3, region);
-                statement.setString(4, serializeTeleportLocation(maximumPoint));
-
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
     }
 
     public Map<ProtectedRegion, Mine> loadMines(World world) {
         Map<ProtectedRegion, Mine> mines = new HashMap<>();
-        sync((connection) -> {
-            FlawMines plugin = FlawMines.get();
-            String query = "SELECT * FROM mines " +
-                " WHERE mines.world = ?;";
+        File[] mineFiles = minesFolder.listFiles((dir, name) -> name.endsWith(".yml"));
+
+        if (mineFiles == null) return mines;
+
+        for (File file : mineFiles) {
             try {
-                PreparedStatement statement = connection.prepareStatement(query);
-                statement.setString(1, world.getName());
-                ResultSet resultSet = statement.executeQuery();
-
-                while (resultSet.next()) {
-                    String mineId = resultSet.getString("id");
-                    String regionName = resultSet.getString("region");
-                    boolean fillmode = resultSet.getBoolean("fillmode");
-                    String teleportLocation = resultSet.getString("teleportLocation");
-                    Map<String, Object> map = new HashMap<>();
-                    for (String entry : teleportLocation.split(",")) {
-                        String[] split = entry.split(":");
-                        try {
-                            map.put(split[0], Double.parseDouble(split[1]));
-                        } catch (NumberFormatException e) {
-                            map.put(split[0], 0);
-                        }
-                    }
-
-                    ProtectedRegion region = plugin.getWorldGuardInterface().getRegionManager(world).getRegion(regionName);
-                    if (region == null) {
-                        plugin.getLogger().warning("Mine region not found: " + regionName);
-                        continue;
-                    }
-
-                    Mine mine = new Mine(mineId, region, world, fillmode, BlockVector.deserialize(map));
-                    mines.put(region, mine);
-
-                    String queryBlocks = "SELECT mB.id AS blockId, mB.data AS blockData " +
-                        "FROM mineBlocks mB " +
-                        "JOIN mines m ON mB.mineId = m.id " +
-                        "WHERE m.id = ?";
-
-                    PreparedStatement blockStatement = connection.prepareStatement(queryBlocks);
-                    blockStatement.setString(1, mineId);
-                    ResultSet blockResultSet = blockStatement.executeQuery();
-                    while (blockResultSet.next()) {
-                        MineBlock block = MineBlock.deserialize(blockResultSet.getString("blockData"));
-                        block.setId(blockResultSet.getInt("blockId"));
-                        mine.addBlock(block);
-                    }
-                    blockResultSet.close();
-
-                    String queryEnvironments = "SELECT mE.id AS environmentId, mE.type AS environmentType, mE.data AS environmentData " +
-                        "FROM mineEnvironments mE " +
-                        "JOIN mines m ON mE.mineId = m.id " +
-                        "WHERE m.id = ?";
-                    PreparedStatement environmentStatement = connection.prepareStatement(queryEnvironments);
-                    environmentStatement.setString(1, mineId);
-                    ResultSet environmentResultSet = environmentStatement.executeQuery();
-                    while (environmentResultSet.next()) {
-                        String environmentType = environmentResultSet.getString("environmentType");
-                        String environmentData = environmentResultSet.getString("environmentData");
-                        Environment environment = Environment.deserialize(mine, environmentType, environmentData);
-                        environment.setId(environmentResultSet.getInt("environmentId"));
-                        mine.addEnvironment(environment);
-                    }
-                    environmentResultSet.close();
+                Mine mine = loadMineFromFile(file, world);
+                if (mine != null) {
+                    mines.put(mine.getRegion().getProtectedRegion(), mine);
                 }
-                resultSet.close();
-            } catch (SQLException e) {
+            } catch (Exception e) {
+                FlawMines.get().getLogger().severe("Failed to load mine from file: " + file.getName());
                 e.printStackTrace();
             }
-        });
+        }
 
         return mines;
     }
 
-    public void saveOnlyMine(Mine mine) {
-        sync((connection) -> {
+    private Mine loadMineFromFile(File file, World world) {
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+        String worldName = config.getString("world");
+        if (!world.getName().equals(worldName)) {
+            return null;
+        }
+
+        String mineName = config.getString("name");
+        String regionName = config.getString("region");
+        boolean fillmode = config.getBoolean("fillmode", false);
+
+        double x = config.getDouble("teleportLocation.x");
+        double y = config.getDouble("teleportLocation.y");
+        double z = config.getDouble("teleportLocation.z");
+        BlockVector teleportLoc = new BlockVector(x, y, z);
+
+        ProtectedRegion region = FlawMines.get().getWorldGuardInterface()
+            .getRegionManager(world).getRegion(regionName);
+        if (region == null) {
+            FlawMines.get().getLogger().warning("Mine region not found: " + regionName);
+            return null;
+        }
+
+        Mine mine = new Mine(mineName, region, world, fillmode, teleportLoc);
+
+        // Load blocks
+        List<Map<?, ?>> blocksList = config.getMapList("blocks");
+        for (Map<?, ?> blockMap : blocksList) {
             try {
-                createMineStatement(mine, connection).executeUpdate();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
+                String materialName = (String) blockMap.get("material");
+                Material material = Material.getMaterial(materialName);
+                if (material == null) {
+                    FlawMines.get().getLogger().warning("Unknown material in mine " + mineName + ": " + materialName);
+                    continue;
+                }
+
+                int data = blockMap.containsKey("data") ? ((Number) blockMap.get("data")).intValue() : 0;
+                float weight = ((Number) blockMap.get("weight")).floatValue();
+
+                MaterialData materialData = FlawMines.isLegacy()
+                    ? material.getNewData((byte) data)
+                    : new MaterialData(material);
+                MineBlock mineBlock = new MineBlock(materialData, weight);
+                mine.addBlock(mineBlock);
+            } catch (Exception e) {
+                FlawMines.get().getLogger().warning("Failed to load block in mine " + mineName);
+                e.printStackTrace();
             }
-        });
+        }
+
+        // Load environments
+        List<Map<?, ?>> envList = config.getMapList("environments");
+        for (Map<?, ?> envMap : envList) {
+            try {
+                String typeStr = (String) envMap.get("type");
+                EnvironmentType envType = EnvironmentType.fromString(typeStr);
+                if (envType == null) {
+                    FlawMines.get().getLogger().warning("Unknown environment type in mine " + mineName + ": " + typeStr);
+                    continue;
+                }
+
+                Environment environment = deserializeEnvironment(mine, envType, envMap);
+                if (environment != null) {
+                    mine.addEnvironment(environment);
+                }
+            } catch (Exception e) {
+                FlawMines.get().getLogger().warning("Failed to load environment in mine " + mineName);
+                e.printStackTrace();
+            }
+        }
+
+        return mine;
     }
 
-    private String serializeTeleportLocation(Vector teleportLocation) {
-        return teleportLocation.serialize().entrySet().stream()
-            .map(entry -> entry.getKey() + ":" + entry.getValue())
-            .reduce((a, b) -> a + "," + b)
-            .orElse("");
+    private Environment deserializeEnvironment(Mine mine, EnvironmentType type, Map<?, ?> data) {
+        switch (type) {
+            case DESTROYED: {
+                float ratio = ((Number) data.get("ratio")).floatValue();
+                int blocksDestroyed = data.containsKey("blocksDestroyed")
+                    ? ((Number) data.get("blocksDestroyed")).intValue()
+                    : 0;
+                // ratio is stored as decimal (0-1), but constructor expects 0-100
+                return new DestroyedEnvironment(0, mine, ratio * 100, blocksDestroyed);
+            }
+            case SCHEDULED: {
+                int intervalSeconds = ((Number) data.get("intervalSeconds")).intValue();
+                long timeSinceLastRun = data.containsKey("timeSinceLastRun")
+                    ? ((Number) data.get("timeSinceLastRun")).longValue()
+                    : 0;
+                return new ScheduledEnvironment(0, mine, intervalSeconds, timeSinceLastRun);
+            }
+            default:
+                return null;
+        }
     }
 
     public void saveMine(Mine mine) {
-        sync((connection) -> {
-            try {
-                connection.setAutoCommit(false);
+        File file = getMineFile(mine.getName());
+        YamlConfiguration config = new YamlConfiguration();
 
-                PreparedStatement statement = createMineStatement(mine, connection);
+        config.set("name", mine.getName());
+        config.set("world", mine.getWorld().getName());
+        config.set("region", mine.getRegion().getProtectedRegion().getId());
+        config.set("fillmode", mine.isFillmode());
+        config.set("teleportLocation.x", mine.getTeleportLocation().getX());
+        config.set("teleportLocation.y", mine.getTeleportLocation().getY());
+        config.set("teleportLocation.z", mine.getTeleportLocation().getZ());
 
-                PreparedStatement blockStatement = connection.prepareStatement(
-                    "UPDATE mineBlocks SET data = ? WHERE id = ?"
-                );
-                for (MineBlock block : mine.getBlocks()) {
-                    blockStatement.setInt(1, block.getId());
-                    blockStatement.setString(2, block.serialize());
-                    blockStatement.addBatch();
-                }
-
-                PreparedStatement environmentStatement = connection.prepareStatement(
-                    "UPDATE mineEnvironments SET data = ? WHERE id = ?"
-                );
-                for (Environment environment : mine.getEnvironments()) {
-                    environmentStatement.setString(1, environment.serialize());
-                    environmentStatement.setInt(2, environment.getId());
-                    environmentStatement.addBatch();
-                }
-
-                statement.executeUpdate();
-                blockStatement.executeBatch();
-                environmentStatement.executeBatch();
-
-                connection.commit();
-            } catch (SQLException e) {
-                try {
-                    if (!connection.getAutoCommit())
-                        connection.rollback();
-                } catch (SQLException rollbackEx) {
-                    rollbackEx.printStackTrace();
-                }
-                e.printStackTrace();
-            } finally {
-                try {
-                    connection.setAutoCommit(true);
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+        // Save blocks
+        List<Map<String, Object>> blocksList = new ArrayList<>();
+        for (MineBlock block : mine.getBlocks()) {
+            Map<String, Object> blockMap = new LinkedHashMap<>();
+            blockMap.put("material", block.getBlockData().getItemType().name());
+            if (FlawMines.isLegacy()) {
+                blockMap.put("data", (int) block.getBlockData().getData());
             }
-        });
+            blockMap.put("weight", block.getWeight());
+            blocksList.add(blockMap);
+        }
+        config.set("blocks", blocksList);
+
+        // Save environments
+        List<Map<String, Object>> envList = new ArrayList<>();
+        for (Environment env : mine.getEnvironments()) {
+            envList.add(serializeEnvironment(env));
+        }
+        config.set("environments", envList);
+
+        try {
+            config.save(file);
+        } catch (IOException e) {
+            FlawMines.get().getLogger().severe("Failed to save mine: " + mine.getName());
+            e.printStackTrace();
+        }
     }
 
-    private PreparedStatement createMineStatement(Mine mine, Connection connection) throws SQLException {
-        PreparedStatement statement = connection.prepareStatement(
-            "UPDATE mines SET world = ?, region = ?, fillmode = ?, teleportLocation = ? WHERE id = ?"
-        );
-        statement.setString(1, mine.getWorld().getName());
-        statement.setString(2, mine.getRegion().getProtectedRegion().getId());
-        statement.setBoolean(3, mine.isFillmode());
-        String teleportVectorMappedToString = serializeTeleportLocation(mine.getTeleportLocation());
-        statement.setString(4, teleportVectorMappedToString);
-        statement.setString(5, mine.getName());
-        return statement;
+    private Map<String, Object> serializeEnvironment(Environment env) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("type", env.getType().name().toLowerCase());
+
+        if (env instanceof DestroyedEnvironment) {
+            DestroyedEnvironment destroyed = (DestroyedEnvironment) env;
+            // Parse ratio from serialized string
+            String serialized = destroyed.serialize();
+            Map<String, String> map = parseSerializedData(serialized);
+            data.put("ratio", Float.parseFloat(map.get("ratio")));
+            data.put("blocksDestroyed", Integer.parseInt(map.get("blocksDestroyed")));
+        } else if (env instanceof ScheduledEnvironment) {
+            ScheduledEnvironment scheduled = (ScheduledEnvironment) env;
+            data.put("intervalSeconds", scheduled.getIntervalSeconds());
+            String serialized = scheduled.serialize();
+            Map<String, String> map = parseSerializedData(serialized);
+            data.put("timeSinceLastRun", Long.parseLong(map.get("timeSinceLastRun")));
+        }
+
+        return data;
     }
 
+    private Map<String, String> parseSerializedData(String data) {
+        Map<String, String> map = new HashMap<>();
+        for (String entry : data.split(",")) {
+            String[] split = entry.split(":");
+            if (split.length == 2) {
+                map.put(split[0], split[1]);
+            }
+        }
+        return map;
+    }
+
+    public void saveOnlyMine(Mine mine) {
+        saveMine(mine);
+    }
 
     public void deleteMine(String id, String region) {
-        sync((connection) -> {
-            try {
-                PreparedStatement statement = connection.prepareStatement(
-                    "DELETE FROM mines WHERE id = ? AND region = ?"
-                );
-                statement.setString(1, id);
-                statement.setString(2, region);
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        File file = getMineFile(id);
+        if (file.exists()) {
+            file.delete();
+        }
     }
 
     public void addBlock(String name, MineBlock block) {
-        sync((connection) -> {
-            try {
-                PreparedStatement statement = connection.prepareStatement(
-                    "INSERT INTO mineBlocks (mineId, data) VALUES (?, ?)",
-                    Statement.RETURN_GENERATED_KEYS
-                );
-                statement.setString(1, name);
-                statement.setString(2, block.serialize());
-                statement.executeUpdate();
-
-                ResultSet generatedKeys = statement.getGeneratedKeys();
-                if (generatedKeys.next()) {
-                    block.setId(generatedKeys.getInt(1));
-                } else {
-                    throw new SQLException("Creating block failed, no ID obtained.");
-                }
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        Mine mine = findMineByName(name);
+        if (mine != null) {
+            saveMine(mine);
+        }
     }
 
     public void setBlocks(String name, List<MineBlock> blocks) {
-        sync((connection) -> {
-            try {
-                PreparedStatement statement = connection.prepareStatement(
-                    "DELETE FROM mineBlocks WHERE mineId = ?"
-                );
-                statement.setString(1, name);
-                statement.executeUpdate();
-
-                PreparedStatement insertStatement = connection.prepareStatement(
-                    "INSERT INTO mineBlocks (mineId, data) VALUES (?, ?)",
-                    Statement.RETURN_GENERATED_KEYS
-                );
-                for (MineBlock block : blocks) {
-                    insertStatement.setString(1, name);
-                    insertStatement.setString(2, block.serialize());
-                    insertStatement.addBatch();
-                }
-                insertStatement.executeBatch();
-
-                ResultSet generatedKeys = insertStatement.getGeneratedKeys();
-                int index = 0;
-                while (generatedKeys.next() && index < blocks.size()) {
-                    blocks.get(index).setId(generatedKeys.getInt(1));
-                    index++;
-                }
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
-
-    public void updateBlock(MineBlock block) {
-        sync((connection) -> {
-            try {
-                PreparedStatement statement = connection.prepareStatement(
-                    "UPDATE mineBlocks SET data = ? WHERE id = ?"
-                );
-                statement.setString(1, block.serialize());
-                statement.setInt(2, block.getId());
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
-
-    public void removeBlock(MineBlock block) {
-        sync((connection) -> {
-            try {
-                PreparedStatement statement = connection.prepareStatement(
-                    "DELETE FROM mineBlocks WHERE id = ?"
-                );
-                statement.setInt(1, block.getId());
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        Mine mine = findMineByName(name);
+        if (mine != null) {
+            saveMine(mine);
+        }
     }
 
     public void addEnvironment(String name, Environment environment) {
-        sync((connection) -> {
-            try {
-                PreparedStatement statement = connection.prepareStatement(
-                    "INSERT INTO mineEnvironments (mineId, type, data) VALUES (?, ?, ?)",
-                    Statement.RETURN_GENERATED_KEYS
-                );
-                statement.setString(1, name);
-                statement.setString(2, environment.getClass().getSimpleName());
-                statement.setString(3, environment.serialize());
-                statement.executeUpdate();
-
-                ResultSet generatedKeys = statement.getGeneratedKeys();
-                if (generatedKeys.next()) {
-                    environment.setId(generatedKeys.getInt(1));
-                } else {
-                    throw new SQLException("Creating environment failed, no ID obtained.");
-                }
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
-
-    public void updateEnvironment(Environment environment) {
-        sync((connection) -> {
-            try {
-                PreparedStatement statement = connection.prepareStatement(
-                    "UPDATE mineEnvironments SET data = ? WHERE id = ?"
-                );
-                statement.setString(1, environment.serialize());
-                statement.setInt(2, environment.getId());
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
-
-    public void removeEnvironment(Environment environment) {
-        sync((connection) -> {
-            try {
-                PreparedStatement statement = connection.prepareStatement(
-                    "DELETE FROM mineEnvironments WHERE id = ?"
-                );
-                statement.setInt(1, environment.getId());
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
-
-    public void async(Consumer<Connection> callback) {
-        Bukkit.getServer().getScheduler().runTaskAsynchronously(FlawMines.get(), () -> {
-            sync(callback);
-        });
-    }
-
-    public void sync(Consumer<Connection> callback) {
-        lock.lock();
-        try {
-            callback.accept(getConnection());
-        } finally {
-            lock.unlock();
+        Mine mine = findMineByName(name);
+        if (mine != null) {
+            saveMine(mine);
         }
+    }
+
+    private Mine findMineByName(String name) {
+        for (World world : org.bukkit.Bukkit.getWorlds()) {
+            MineManager manager = FlawMines.get().getMineManager(world);
+            if (manager != null) {
+                Mine mine = manager.getMine(name);
+                if (mine != null) {
+                    return mine;
+                }
+            }
+        }
+        return null;
+    }
+
+    public File getMinesFolder() {
+        return minesFolder;
     }
 }
