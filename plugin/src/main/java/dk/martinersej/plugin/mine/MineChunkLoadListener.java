@@ -6,7 +6,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.Iterator;
 import java.util.List;
 
 public class MineChunkLoadListener implements Listener {
@@ -24,18 +23,17 @@ public class MineChunkLoadListener implements Listener {
         if (minesToReset.isEmpty()) {
             return; // No mines to reset
         }
-        Iterator<Mine> iterator = minesToReset.iterator(); // Use an iterator to safely remove mines while iterating
         new BukkitRunnable() {
             @Override
             public void run() {
                 for (Mine mine : minesToReset) {
-                    if (mine.isInChunk(event.getChunk())) {
+                    if (mine.isInChunk(event.getChunk()) && mine.areAllChunksLoaded()) {
                         mine.reset();
-                        iterator.remove();
+                        minesToReset.remove(mine);
                     }
                 }
             }
-        }.runTaskAsynchronously(FlawMines.get());
+        }.runTask(FlawMines.get());
     }
 }
 

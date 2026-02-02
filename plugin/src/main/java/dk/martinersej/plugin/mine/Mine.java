@@ -62,9 +62,8 @@ public class Mine {
     }
 
     public void reset() {
-        // if the region is not loaded, queue reset for when chunks load
-        if (!getWorld().isChunkLoaded(getRegion().getRegion().getMinimumPoint().getBlockX() >> 4, getRegion().getRegion().getMinimumPoint().getBlockZ() >> 4) ||
-            !getWorld().isChunkLoaded(getRegion().getRegion().getMaximumPoint().getBlockX() >> 4, getRegion().getRegion().getMaximumPoint().getBlockZ() >> 4)) {
+        // if not all chunks are loaded, queue reset for when chunks load
+        if (!areAllChunksLoaded()) {
             FlawMines.get().getMineManager(getWorld()).addMineToResetQueue(this);
             return;
         }
@@ -215,5 +214,22 @@ public class Mine {
         int minZ = region.getRegion().getMinimumPoint().getBlockZ() >> 4;
         int maxZ = region.getRegion().getMaximumPoint().getBlockZ() >> 4;
         return chunkX >= minX && chunkX <= maxX && chunkZ >= minZ && chunkZ <= maxZ;
+    }
+
+    public boolean areAllChunksLoaded() {
+        MineRegion region = getRegion();
+        int minX = region.getRegion().getMinimumPoint().getBlockX() >> 4;
+        int maxX = region.getRegion().getMaximumPoint().getBlockX() >> 4;
+        int minZ = region.getRegion().getMinimumPoint().getBlockZ() >> 4;
+        int maxZ = region.getRegion().getMaximumPoint().getBlockZ() >> 4;
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                if (!getWorld().isChunkLoaded(x, z)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }
